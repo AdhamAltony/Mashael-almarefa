@@ -132,8 +132,8 @@ function CourseForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
         </label>
         <div
           className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all ${errors.video
-              ? "border-red-400 bg-red-50/50"
-              : "border-emerald-200/80 bg-white/60 hover:border-emerald-400 hover:bg-emerald-50/50"
+            ? "border-red-400 bg-red-50/50"
+            : "border-emerald-200/80 bg-white/60 hover:border-emerald-400 hover:bg-emerald-50/50"
             }`}
         >
           {formData.video ? (
