@@ -34,6 +34,8 @@ const EMPTY_FORM = {
   attendance: "",
   minutes: "",
   topic: "",
+  rating: "",
+  notes: "",
 };
 
 // ─── Shared Theme Styles ──────────────────────────────────────────────────────
@@ -156,7 +158,7 @@ function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
             onChange={onChange}
             className={`${INPUT_BASE} ${border("student")} appearance-none`}
           >
-            <option value="" disabled className="text-slate-400">
+            <option value="" disabled hidden className="text-slate-400">
               -- اختر من القائمة --
             </option>
             {STUDENTS.map((s) => (
@@ -201,25 +203,36 @@ function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
       {/* ── Minutes ── */}
       <div className="space-y-1.5">
         <label htmlFor="minutes" className="block text-sm font-bold text-emerald-950">
-          عدد الدقائق التي حضرها الطالب{" "}
+          وقت الحصة{" "}
           {!isAbsent && <span className="text-red-500">*</span>}
         </label>
-        <input
-          id="minutes"
-          type="number"
-          name="minutes"
-          value={formData.minutes}
-          onChange={onChange}
-          disabled={isAbsent}
-          placeholder="مثال: 30"
-          min="1"
-          className={[
-            INPUT_BASE,
-            border("minutes"),
-            "placeholder:text-slate-400/80",
-            isAbsent ? "cursor-not-allowed opacity-60 bg-slate-50 border-slate-200 text-slate-500" : "",
-          ].join(" ")}
-        />
+        <SelectWrapper>
+          <select
+            id="minutes"
+            name="minutes"
+            value={formData.minutes}
+            onChange={onChange}
+            disabled={isAbsent}
+            className={[
+              INPUT_BASE,
+              border("minutes"),
+              "appearance-none",
+              isAbsent ? "cursor-not-allowed opacity-60 bg-slate-50 border-slate-200 text-slate-500" : "",
+            ].join(" ")}
+          >
+            <option value="" disabled hidden className="text-slate-400">
+              -- اختر وقت الحصة --
+            </option>
+            <option value="15" className="bg-white text-emerald-950">15 دقيقة (ربع ساعة)</option>
+            <option value="30" className="bg-white text-emerald-950">30 دقيقة (نصف ساعة)</option>
+            <option value="45" className="bg-white text-emerald-950">45 دقيقة (ساعة إلا ربع)</option>
+            <option value="60" className="bg-white text-emerald-950">60 دقيقة (ساعة)</option>
+            <option value="75" className="bg-white text-emerald-950">75 دقيقة (ساعة وربع)</option>
+            <option value="90" className="bg-white text-emerald-950">90 دقيقة (ساعة ونصف)</option>
+            <option value="105" className="bg-white text-emerald-950">105 دقائق (ساعة وثلاثة أرباع)</option>
+            <option value="120" className="bg-white text-emerald-950">120 دقيقة (ساعتان)</option>
+          </select>
+        </SelectWrapper>
         <FieldError message={errors.minutes} />
       </div>
 
@@ -228,25 +241,65 @@ function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
         <label htmlFor="topic" className="block text-sm font-bold text-emerald-950">
           موضوع الحلقة <span className="text-red-500">*</span>
         </label>
+        <input
+          id="topic"
+          type="text"
+          name="topic"
+          value={formData.topic}
+          onChange={onChange}
+          placeholder="مثال : سورة البقرة من الآية 1 إلى الآية 10"
+          className={`${INPUT_BASE} ${border("topic")}`}
+        />
+        <FieldError message={errors.topic} />
+      </div>
+
+      {/* ── Rating ── */}
+      <div className="space-y-1.5">
+        <label htmlFor="rating" className="block text-sm font-bold text-emerald-950">
+          تقييم الطالب من 10 <span className="text-red-500">*</span>
+        </label>
         <SelectWrapper>
           <select
-            id="topic"
-            name="topic"
-            value={formData.topic}
+            id="rating"
+            name="rating"
+            value={formData.rating}
             onChange={onChange}
-            className={`${INPUT_BASE} ${border("topic")} appearance-none`}
+            disabled={isAbsent}
+            className={[
+              INPUT_BASE,
+              border("rating"),
+              "appearance-none",
+              isAbsent ? "cursor-not-allowed opacity-60 bg-slate-50 border-slate-200 text-slate-500" : "",
+            ].join(" ")}
           >
-            <option value="" disabled className="text-slate-400">
-              -- اختر موضوع الدرس --
+            <option value="" disabled hidden className="text-slate-400">
+              -- اختر التقييم --
             </option>
-            {TOPICS.map((t) => (
-              <option key={t} value={t} className="bg-white text-emerald-950">
-                {t}
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+              <option key={num} value={num} className="bg-white text-emerald-950">
+                {num} / 10
               </option>
             ))}
           </select>
         </SelectWrapper>
-        <FieldError message={errors.topic} />
+        <FieldError message={errors.rating} />
+      </div>
+
+      {/* ── Notes ── */}
+      <div className="space-y-1.5">
+        <label htmlFor="notes" className="block text-sm font-bold text-emerald-950">
+          ملاحظات الطالب
+        </label>
+        <textarea
+          id="notes"
+          name="notes"
+          value={formData.notes}
+          onChange={onChange}
+          rows="3"
+          placeholder="أضف أي ملاحظات إضافية هنا..."
+          className={`${INPUT_BASE} ${border("notes")} resize-y`}
+        />
+        <FieldError message={errors.notes} />
       </div>
 
       {/* ── Submit ── */}
@@ -399,7 +452,7 @@ export default function TeacherSessionPage() {
     const { name, value } = e.target;
     setFormData((prev) =>
       name === "attendance" && value === "غائب"
-        ? { ...prev, attendance: value, minutes: "" }
+        ? { ...prev, attendance: value, minutes: "", rating: "" }
         : { ...prev, [name]: value }
     );
     setErrors((prev) => (prev[name] ? { ...prev, [name]: "" } : prev));
@@ -412,8 +465,8 @@ export default function TeacherSessionPage() {
     if (!formData.attendance) errs.attendance = "الرجاء تحديد حالة الحضور";
     if (!formData.topic) errs.topic = "الرجاء اختيار موضوع الحلقة";
     if (formData.attendance === "حاضر") {
-      if (!formData.minutes) errs.minutes = "الرجاء إدخال عدد الدقائق";
-      else if (Number(formData.minutes) <= 0) errs.minutes = "يجب أن يكون عدد الدقائق رقماً موجباً";
+      if (!formData.minutes) errs.minutes = "الرجاء تحديد وقت الحصة";
+      if (!formData.rating) errs.rating = "الرجاء اختيار تقييم الطالب";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
