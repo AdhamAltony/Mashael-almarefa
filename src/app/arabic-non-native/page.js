@@ -282,6 +282,127 @@ function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
             ))}
           </select>
         </SelectWrapper>
+            ))}
+          </select>
+        </SelectWrapper>
+        <FieldError message={errors.student} />
+      </div>
+
+      {/* ── Date + Attendance ── */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label htmlFor="date" className="block text-sm font-bold text-emerald-950">
+            تاريخ الحصة <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="date"
+            type="date"
+            name="date"
+            value={formData.date}
+            onChange={onChange}
+            className={`${INPUT_BASE} ${border("date")}`}
+          />
+          <FieldError message={errors.date} />
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-sm font-bold text-emerald-950">
+            حالة الحضور <span className="text-red-500">*</span>
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <AttendanceOption value="حاضر" current={formData.attendance} onChange={onChange} />
+            <AttendanceOption value="غائب" current={formData.attendance} onChange={onChange} />
+          </div>
+          <FieldError message={errors.attendance} />
+        </div>
+      </div>
+
+      {/* ── Minutes ── */}
+      <div className="space-y-1.5">
+        <label htmlFor="minutes" className="block text-sm font-bold text-emerald-950">
+          وقت الحصة{" "}
+          {!isAbsent && <span className="text-red-500">*</span>}
+        </label>
+        <SelectWrapper>
+          <select
+            id="minutes"
+            name="minutes"
+            value={formData.minutes}
+            onChange={onChange}
+            disabled={isAbsent}
+            className={[
+              INPUT_BASE,
+              border("minutes"),
+              "appearance-none",
+              isAbsent ? "cursor-not-allowed opacity-60 bg-slate-50 border-slate-200 text-slate-500" : "",
+            ].join(" ")}
+          >
+            <option value="" disabled hidden className="text-slate-400">
+              -- اختر وقت الحصة --
+            </option>
+            <option value="15" className="bg-white text-emerald-950">15 دقيقة (ربع ساعة)</option>
+            <option value="30" className="bg-white text-emerald-950">30 دقيقة (نصف ساعة)</option>
+            <option value="45" className="bg-white text-emerald-950">45 دقيقة (ساعة إلا ربع)</option>
+            <option value="60" className="bg-white text-emerald-950">60 دقيقة (ساعة)</option>
+            <option value="75" className="bg-white text-emerald-950">75 دقيقة (ساعة وربع)</option>
+            <option value="90" className="bg-white text-emerald-950">90 دقيقة (ساعة ونصف)</option>
+            <option value="105" className="bg-white text-emerald-950">105 دقائق (ساعة وثلاثة أرباع)</option>
+            <option value="120" className="bg-white text-emerald-950">120 دقيقة (ساعتان)</option>
+          </select>
+        </SelectWrapper>
+        <FieldError message={errors.minutes} />
+      </div>
+
+      {/* ── Topic ── */}
+      <div className="space-y-1.5">
+        <label htmlFor="topic" className="block text-sm font-bold text-emerald-950">
+          موضوع الحصة <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="topic"
+          type="text"
+          name="topic"
+          value={formData.topic}
+          onChange={onChange}
+
+          placeholder="مثال : دروس لغة عربية لغير الناطقين باللغة العربية"
+
+          placeholder="مثال :  دروس لغة عربية لغير الناطقين باللغة العربية"
+
+          className={`${INPUT_BASE} ${border("topic")}`}
+        />
+        <FieldError message={errors.topic} />
+      </div>
+
+      {/* ── Rating ── */}
+      <div className="space-y-1.5">
+        <label htmlFor="rating" className="block text-sm font-bold text-emerald-950">
+          تقييم الطالب من 10 <span className="text-red-500">*</span>
+        </label>
+        <SelectWrapper>
+          <select
+            id="rating"
+            name="rating"
+            value={formData.rating}
+            onChange={onChange}
+            disabled={isAbsent}
+            className={[
+              INPUT_BASE,
+              border("rating"),
+              "appearance-none",
+              isAbsent ? "cursor-not-allowed opacity-60 bg-slate-50 border-slate-200 text-slate-500" : "",
+            ].join(" ")}
+          >
+            <option value="" disabled hidden className="text-slate-400">
+              -- اختر التقييم --
+            </option>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+              <option key={num} value={num} className="bg-white text-emerald-950">
+                {num} / 10
+              </option>
+            ))}
+          </select>
+        </SelectWrapper>
         <FieldError message={errors.rating} />
       </div>
 
@@ -349,6 +470,11 @@ function SuccessMessage({ onReset }) {
       <h2 className="mb-3 text-2xl font-bold text-emerald-950">تم تسجيل الحصة بنجاح!</h2>
       <p className="mb-8 text-slate-600">
         تم حفظ بيانات الحضور وتفاصيل الحصة بنجاح في سجل الطالب.
+
+        تم حفظ بيانات الحضور وتفاصيل الحصة بنجاح في سجل الطالب.
+
+        تم حفظ بيانات الحضور وتفاصيل الحلقة بنجاح في سجل الطالب.
+
       </p>
       <button
         onClick={onReset}
@@ -464,6 +590,11 @@ export default function ArabicNonNativePage() {
     if (!formData.date) errs.date = "الرجاء تحديد تاريخ الحصة";
     if (!formData.attendance) errs.attendance = "الرجاء تحديد حالة الحضور";
     if (!formData.topic) errs.topic = "الرجاء اختيار موضوع الحصة";
+
+    if (!formData.topic) errs.topic = "الرجاء اختيار موضوع الحصة";
+
+    if (!formData.topic) errs.topic = "الرجاء اختيار موضوع الحلقة";
+
     if (formData.attendance === "حاضر") {
       if (!formData.minutes) errs.minutes = "الرجاء تحديد وقت الحصة";
       if (!formData.rating) errs.rating = "الرجاء اختيار تقييم الطالب";
