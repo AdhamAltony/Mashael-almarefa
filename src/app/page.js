@@ -118,10 +118,10 @@ function Navbar() {
 
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
-                href="/quran-and-sciences"
+                href="/auth/login"
                 className="hidden sm:inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-50 transition-all hover:bg-emerald-500/20 hover:-translate-y-0.5 sm:px-5 sm:py-3 sm:text-sm"
               >
-                دخول المعلم
+                تسجيل الدخول
               </Link>
               <Link
                 href="#platform-sections"

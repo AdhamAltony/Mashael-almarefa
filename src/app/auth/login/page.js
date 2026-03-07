@@ -113,6 +113,14 @@ export default function LoginPage() {
           >
             تسجيل الدخول
           </button>
+
+          <div className="mt-4 text-center text-sm text-slate-600">
+            ليس لديك حساب بعد؟{" "}
+            <Link href="/auth/signup" className="font-bold text-emerald-700 hover:text-emerald-800">
+              أنشئ حساباً جديداً
+            </Link>
+          </div>
+
         </form>
       </article>
     </main>
