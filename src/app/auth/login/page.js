@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [role, setRole] = useState("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,22 +14,38 @@ export default function LoginPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Basic mock validation: check if empty or some arbitrary check
     if (!email || !password) {
       setError("الرجاء إدخال البريد الإلكتروني وكلمة المرور.");
       return;
     }
 
-    // Mock an invalid credentials scenario
-    // For demonstration, say if email doesn't end in @mashael.com it's invalid
-    if (email !== "demo@mashael.com" || password !== "12345678") {
-      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+    const validUsers = [
+      { role: "student", email: "student@gmail.com", password: "123456", redirect: "/student/profile" },
+      { role: "admin", email: "admin@gmail.com", password: "123456", redirect: "/admin" },
+      { role: "teacher", email: "teacher@gmail.com", password: "123456", redirect: "/teacher/dashboard" }
+    ];
+
+    const userByEmail = validUsers.find(u => u.email === email);
+
+    if (!userByEmail) {
+      setError("هذا البريد غير مسجل من قبل.");
       return;
     }
 
-    // Success logical branch: normally you would redirect or set auth context here
+    if (userByEmail.role !== role) {
+      setError("ليس لديك صلاحية الدخول بهذه الصفة.");
+      return;
+    }
+
+    if (userByEmail.password !== password) {
+      setError("كلمة المرور غير صحيحة.");
+      return;
+    }
+
+    // Success
+    document.cookie = `userRole=${userByEmail.role}; path=/; max-age=86400; SameSite=Strict`;
     setError("");
-    alert("تم تسجيل الدخول بنجاح!");
+    router.push(userByEmail.redirect);
   };
 
   return (
@@ -88,6 +106,30 @@ export default function LoginPage() {
                 <span className="font-bold text-emerald-900">مدرس</span>
               </div>
               {role === "teacher" && (
+                <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-300 animate-in zoom-in">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </label>
+
+            <label className="relative flex-1 cursor-pointer">
+              <input
+                type="radio"
+                name="role"
+                value="admin"
+                checked={role === "admin"}
+                onChange={() => setRole("admin")}
+                className="peer sr-only"
+              />
+              <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-slate-100 bg-white/80 p-4 transition-all hover:border-emerald-200 hover:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:shadow-md peer-checked:shadow-emerald-500/10">
+                <svg className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span className="font-bold text-emerald-900">إدارة</span>
+              </div>
+              {role === "admin" && (
                 <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-300 animate-in zoom-in">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
