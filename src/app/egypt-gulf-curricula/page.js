@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useCallback } from "react";
+import TeacherNavbar from "../teacher/teacher-navbar";
 
 // ─── Static Data (module-level, never re-created) ─────────────────────────────
 
@@ -22,10 +23,8 @@ const TOPICS = [
 ];
 
 const NAV_LINKS = [
-  { label: "ركن القرآن", href: "/quran-and-sciences" },
-  { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
-  { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
-  { label: "مركز الدورات", href: "/courses-center" },
+  { label: "تسجيل حضور الطالب", href: "/egypt-gulf-curricula" },
+  { label: "الطلبة المسجلين", href: "/egypt-gulf-curricula/students" },
 ];
 
 const EMPTY_FORM = {
@@ -360,55 +359,7 @@ function SuccessMessage({ onReset }) {
   );
 }
 
-// ─── Navbar ───────────────────────────────────────────────────────────────────
-
-function Navbar() {
-  return (
-    <nav className="fixed right-0 left-0 top-0 z-50">
-      <div className="nav-surface shadow-[0_12px_36px_-16px_rgba(4,16,31,0.85)]">
-        <div className="site-container">
-          <div className="flex min-h-[4.5rem] items-center justify-between gap-4">
-            {/* Brand */}
-            <Link href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-              <div className="icon-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-xl font-bold text-white shadow-lg shadow-emerald-500/30 sm:h-12 sm:w-12">
-                م
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate whitespace-nowrap text-base font-bold text-white sm:text-lg">
-                  مشاعل المعرفة
-                </span>
-                <span className="hidden text-xs text-emerald-200/80 sm:block">
-                  منصة تعليمية متكاملة
-                </span>
-              </div>
-            </Link>
-
-            {/* Nav Links — large screens only */}
-            <nav aria-label="التنقل الرئيسي" className="hidden items-center gap-2 lg:flex xl:gap-3">
-              {NAV_LINKS.map((item) => (
-                <Link key={item.href} href={item.href} className="nav-link-pill">
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Home CTA */}
-            <Link
-              href="/"
-              className="glow-button inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-500 sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
-            >
-              <svg aria-hidden="true" className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-              <span className="hidden sm:inline">العودة إلى الصفحة الرئيسية</span>
-              <span className="sm:hidden">الرئيسية</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
+// Navbar removed since we're using TeacherNavbar
 
 // ─── FooterSection ─────────────────────────────────────────────────────────────
 
@@ -504,7 +455,13 @@ export default function EgyptGulfCurriculaPage() {
         <div className="absolute bottom-0 left-0 h-[600px] w-[600px] translate-x-1/3 translate-y-1/4 rounded-full bg-emerald-50/80 blur-3xl pointer-events-none" />
       </div>
 
-      <Navbar />
+      <TeacherNavbar
+        sectionTitle="المناهج الدراسية"
+        links={NAV_LINKS}
+        ctaLabel="العودة إلى الصفحة الرئيسية"
+        ctaHref="/teacher/dashboard"
+        showCtaWithSession={true}
+      />
 
       {/* ── Main Content ── */}
       <section className="relative z-10 flex flex-1 flex-col justify-center px-4 pt-28 pb-16 sm:px-6 sm:pt-32 sm:pb-24">
@@ -512,7 +469,7 @@ export default function EgyptGulfCurriculaPage() {
           {/* Page Header */}
           <header className="mb-10 text-center">
             <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700 shadow-sm border border-emerald-200/50">
-              بوابة المعلمين
+              بوابة المعلمين - المناهج الدراسية
             </span>
             <h1 className="mb-4 text-3xl font-black leading-snug text-emerald-950 sm:text-4xl text-balance">
               تسجيل حضور ومتابعة طالب
