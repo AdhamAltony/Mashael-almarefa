@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const QUICK_STATS = [
   { label: "نسبة الحضور", value: "96%", hint: "آخر 30 يوم" },
@@ -14,6 +17,23 @@ const UPCOMING = [
 ];
 
 export default function StudentDashboardPage() {
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    const cookies = document.cookie.split("; ");
+    const sessionCookie = cookies.find(c => c.startsWith("session="));
+    if (sessionCookie) {
+      try {
+        const data = JSON.parse(decodeURIComponent(atob(sessionCookie.split("=")[1])));
+        setSession(data);
+      } catch (e) {
+        console.error("Failed to parse session", e);
+      }
+    }
+  }, []);
+
+  const studentName = session?.name || "مريم أحمد خالد";
+
   return (
     <main className="site-container py-10" dir="rtl">
       <section className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 sm:p-8">
@@ -22,7 +42,7 @@ export default function StudentDashboardPage() {
             <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
               لوحة الطالب
             </p>
-            <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">مرحبًا مريم أحمد خالد</h1>
+            <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">مرحبًا {studentName}</h1>
             <p className="mt-2 text-sm text-slate-600">متابعة تقدمك الأكاديمي وحصصك القادمة في مكان واحد.</p>
           </div>
           <div className="flex flex-wrap gap-3">
