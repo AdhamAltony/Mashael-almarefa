@@ -4,7 +4,7 @@ import PortalNavbar from "@/components/portal-navbar";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function TeacherNavbar({ sectionTitle, links }) {
+export default function TeacherNavbar({ sectionTitle, links, ctaLabel, ctaHref, showCtaWithSession }) {
     const [session, setSession] = useState(null);
     const router = useRouter();
 
@@ -39,6 +39,9 @@ export default function TeacherNavbar({ sectionTitle, links }) {
         <PortalNavbar
             sectionTitle={sectionTitle}
             links={links}
+            ctaLabel={ctaLabel}
+            ctaHref={ctaHref}
+            showCtaWithSession={showCtaWithSession}
             userSession={session}
             onLogout={handleLogout}
         />

@@ -23,7 +23,8 @@ export default function LoginPage() {
     const validUsers = [
       { role: "student", email: "student@gmail.com", password: "123456", redirect: "/student/profile", name: "طالب تجريبي" },
       { role: "admin", email: "admin@gmail.com", password: "123456", redirect: "/admin/dashboard", name: "مدير النظام" },
-      { role: "teacher", email: "teacher@gmail.com", password: "123456", redirect: "/teacher/dashboard", name: "معلم تجريبي" }
+      { role: "teacher", email: "teacher@gmail.com", password: "123456", redirect: "/teacher/dashboard", name: "معلم تجريبي" },
+      { role: "teacher", email: "quran@gmail.com", password: "123456", redirect: "/quran-and-sciences/students", name: "معلم ركن القرآن" }
     ];
 
     const userByEmail = validUsers.find(u => u.email === email);
