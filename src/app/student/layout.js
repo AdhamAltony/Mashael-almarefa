@@ -2,7 +2,7 @@ import StudentNavbar from "./student-navbar";
 
 const STUDENT_LINKS = [
   { label: "الملف الشخصي", href: "/student/profile" },
-  { label: "معلمي ركن القرآن", href: "/student/quran-teachers" },
+  { label: "معلميني", href: "/student/quran-teachers" },
 ];
 
 export default function StudentLayout({ children }) {

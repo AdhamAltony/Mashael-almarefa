@@ -21,12 +21,14 @@ export default function LoginPage() {
     }
 
     const validUsers = [
-      { role: "student", email: "student@gmail.com", password: "123456", redirect: "/student/profile", name: "طالب تجريبي" },
-      { role: "admin", email: "admin@gmail.com", password: "123456", redirect: "/admin/dashboard", name: "مدير النظام" },
-      { role: "teacher", email: "teacher@gmail.com", password: "123456", redirect: "/teacher/dashboard", name: "معلم تجريبي" },
-      { role: "teacher", email: "quran@gmail.com", password: "123456", redirect: "/quran-and-sciences/students", name: "معلم ركن القرآن" },
-      { role: "teacher", email: "arabic@gmail.com", password: "123456", redirect: "/arabic-non-native/students", name: "معلم العربية" },
-      { role: "teacher", email: "curricula@gmail.com", password: "123456", redirect: "/egypt-gulf-curricula/students", name: "معلم المناهج الدراسية" }
+      { role: "student", email: "student1@gmail.com", password: "123456", redirect: "/student/profile", name: "طالب ركن القرآن", course: "ركن القرآن" },
+      { role: "student", email: "student2@gmail.com", password: "123456", redirect: "/student/profile", name: "طالب العربية لغير الناطقين", course: "العربية لغير الناطقين" },
+      { role: "student", email: "student3@gmail.com", password: "123456", redirect: "/student/profile", name: "طالب المناهج الدراسية", course: "المناهج الدراسية" },
+      { role: "admin", email: "admin@gmail.com", password: "123456", redirect: "/admin/dashboard", name: "مدير النظام", course: "" },
+      { role: "teacher", email: "teacher@gmail.com", password: "123456", redirect: "/teacher/dashboard", name: "معلم تجريبي", course: "" },
+      { role: "teacher", email: "quran@gmail.com", password: "123456", redirect: "/quran-and-sciences/students", name: "معلم ركن القرآن", course: "ركن القرآن" },
+      { role: "teacher", email: "arabic@gmail.com", password: "123456", redirect: "/arabic-non-native/students", name: "معلم العربية", course: "العربية لغير الناطقين" },
+      { role: "teacher", email: "curricula@gmail.com", password: "123456", redirect: "/egypt-gulf-curricula/students", name: "معلم المناهج الدراسية", course: "المناهج الدراسية" }
     ];
 
     const userByEmail = validUsers.find(u => u.email === email);
@@ -48,7 +50,7 @@ export default function LoginPage() {
 
     // Success
     const cookieOptions = rememberMe ? "max-age=2592000; SameSite=Strict" : "SameSite=Strict";
-    const sessionData = { role: userByEmail.role, email: userByEmail.email, name: userByEmail.name };
+    const sessionData = { role: userByEmail.role, email: userByEmail.email, name: userByEmail.name, course: userByEmail.course };
     const encodedSession = btoa(encodeURIComponent(JSON.stringify(sessionData)));
 
     document.cookie = `userRole=${userByEmail.role}; path=/; ${cookieOptions}`;

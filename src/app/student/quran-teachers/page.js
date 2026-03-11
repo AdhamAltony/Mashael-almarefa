@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const TEACHERS_DATA = [
     {
@@ -47,19 +47,32 @@ const TEACHERS_DATA = [
 ];
 
 export default function QuranTeachersPage() {
+    const [course, setCourse] = useState("البرنامج العام");
+
+    useEffect(() => {
+        const cookies = document.cookie.split("; ");
+        const sessionCookie = cookies.find(c => c.startsWith("session="));
+        if (sessionCookie) {
+            try {
+                const data = JSON.parse(decodeURIComponent(atob(sessionCookie.split("=")[1])));
+                if (data.course) setCourse(data.course);
+            } catch (e) { }
+        }
+    }, []);
+
     return (
         <section className="relative z-10 flex flex-1 flex-col justify-center px-4 pb-16 sm:px-6 sm:pb-24">
             <div className="mx-auto w-full max-w-5xl">
                 {/* Page Header */}
                 <header className="mb-10 text-center">
                     <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700 shadow-sm border border-emerald-200/50">
-                        معلمي ركن القرآن
+                        معلمي {course}
                     </span>
                     <h1 className="mb-4 text-3xl font-black leading-snug text-emerald-950 sm:text-4xl text-balance">
                         اختر معلمك وابدأ رحلتك
                     </h1>
                     <p className="mx-auto max-w-xl text-base text-slate-600 sm:text-lg text-balance">
-                        قائمة بمعلمي القرآن الكريم المعتمدين والمتميزين في المنصة. يمكنك التواصل المباشر مع المعلم المناسب وترتيب مواعيد الحلقات.
+                        قائمة بمعلمي {course} المعتمدين والمتميزين في المنصة. يمكنك التواصل المباشر مع المعلم المناسب وترتيب مواعيد الحلقات.
                     </p>
                 </header>
 

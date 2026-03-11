@@ -1,18 +1,6 @@
+"use client";
 import Link from "next/link";
-
-const STUDENT = {
-  name: "مريم أحمد خالد",
-  id: "STD-24017",
-  level: "المستوى الثاني - لغة عربية",
-  age: 12,
-  country: "مصر",
-  guardian: "أحمد خالد",
-  phone: "+20 100 345 7788",
-  email: "mariam.student@example.com",
-  joinDate: "15 سبتمبر 2025",
-  teacher: "أ. سارة محمد",
-  nextClass: "السبت 7 مارس 2026 - 6:00 م",
-};
+import { useEffect, useState } from "react";
 
 const PROGRESS = [
   { title: "القراءة", value: 86 },
@@ -44,6 +32,38 @@ function StatCard({ label, value, hint }) {
 }
 
 export default function StudentProfilePage() {
+  const [student, setStudent] = useState({
+    name: "مريم أحمد خالد",
+    id: "STD-24017",
+    level: "المستوى الثاني - لغة عربية",
+    course: "بوابة الطالب",
+    age: 12,
+    country: "مصر",
+    guardian: "أحمد خالد",
+    phone: "+20 100 345 7788",
+    email: "mariam.student@example.com",
+    joinDate: "15 سبتمبر 2025",
+    teacher: "أ. سارة محمد",
+    nextClass: "السبت 7 مارس 2026 - 6:00 م",
+  });
+
+  useEffect(() => {
+    const cookies = document.cookie.split("; ");
+    const sessionCookie = cookies.find(c => c.startsWith("session="));
+    if (sessionCookie) {
+      try {
+        const data = JSON.parse(decodeURIComponent(atob(sessionCookie.split("=")[1])));
+        setStudent(prev => ({
+          ...prev,
+          name: data.name || prev.name,
+          course: data.course || prev.course,
+          level: data.course ? `مسجل في: ${data.course}` : prev.level,
+          email: data.email || prev.email,
+        }));
+      } catch (e) { }
+    }
+  }, []);
+
   return (
     <main
       dir="rtl"
@@ -63,10 +83,10 @@ export default function StudentProfilePage() {
                 <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                   الملف الشخصي للطالب
                 </p>
-                <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">{STUDENT.name}</h1>
-                <p className="mt-1 text-sm text-slate-600">{STUDENT.level}</p>
+                <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">{student.name}</h1>
+                <p className="mt-1 text-sm text-slate-600">{student.level}</p>
                 <p className="mt-2 text-sm font-medium text-slate-700">
-                  رقم الطالب: <span className="font-bold text-emerald-800">{STUDENT.id}</span>
+                  رقم الطالب: <span className="font-bold text-emerald-800">{student.id}</span>
                 </p>
               </div>
             </div>
@@ -122,23 +142,23 @@ export default function StudentProfilePage() {
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3">
                 <dt className="font-bold text-slate-600">العمر</dt>
-                <dd className="font-bold text-emerald-900">{STUDENT.age} سنة</dd>
+                <dd className="font-bold text-emerald-900">{student.age} سنة</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="font-bold text-slate-600">الدولة</dt>
-                <dd className="font-bold text-emerald-900">{STUDENT.country}</dd>
+                <dd className="font-bold text-emerald-900">{student.country}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="font-bold text-slate-600">ولي الأمر</dt>
-                <dd className="font-bold text-emerald-900">{STUDENT.guardian}</dd>
+                <dd className="font-bold text-emerald-900">{student.guardian}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="font-bold text-slate-600">المعلم</dt>
-                <dd className="font-bold text-emerald-900">{STUDENT.teacher}</dd>
+                <dd className="font-bold text-emerald-900">{student.teacher}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="font-bold text-slate-600">تاريخ الانضمام</dt>
-                <dd className="font-bold text-emerald-900">{STUDENT.joinDate}</dd>
+                <dd className="font-bold text-emerald-900">{student.joinDate}</dd>
               </div>
             </dl>
           </article>
@@ -182,15 +202,15 @@ export default function StudentProfilePage() {
           <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <p className="rounded-xl border border-emerald-100 bg-white p-3">
               <span className="block font-bold text-slate-600">رقم ولي الأمر</span>
-              <span className="font-bold text-emerald-900" dir="ltr">{STUDENT.phone}</span>
+              <span className="font-bold text-emerald-900" dir="ltr">{student.phone}</span>
             </p>
             <p className="rounded-xl border border-emerald-100 bg-white p-3">
               <span className="block font-bold text-slate-600">البريد الإلكتروني</span>
-              <span className="font-bold text-emerald-900">{STUDENT.email}</span>
+              <span className="font-bold text-emerald-900">{student.email}</span>
             </p>
             <p className="rounded-xl border border-emerald-100 bg-white p-3">
               <span className="block font-bold text-slate-600">الحصة التالية</span>
-              <span className="font-bold text-emerald-900">{STUDENT.nextClass}</span>
+              <span className="font-bold text-emerald-900">{student.nextClass}</span>
             </p>
           </div>
         </section>
