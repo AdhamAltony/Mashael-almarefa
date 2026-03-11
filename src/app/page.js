@@ -24,12 +24,7 @@ function UsersIcon({ className = "w-6 h-6" }) {
   );
 }
 
-const navLinks = [
-  { label: "ركن القرآن", href: "/quran-and-sciences" },
-  { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
-  { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
-  { label: "مركز الدورات", href: "/courses-center" },
-];
+
 
 const audienceSegments = [
   { title: "الطلاب العرب", description: "المناهج الدراسية في مصر والخليج." },
@@ -104,17 +99,7 @@ function Navbar() {
               </div>
             </Link>
 
-            <div className="hidden items-center gap-2 lg:flex xl:gap-3">
-              {navLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="nav-link-pill"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+
 
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
