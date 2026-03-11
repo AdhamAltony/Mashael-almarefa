@@ -31,14 +31,21 @@ export function middleware(request) {
     const isStudentSectionPath =
         pathname.startsWith('/quran-and-sciences/students') ||
         pathname.startsWith('/arabic-non-native/students') ||
-        pathname.startsWith('/egypt-gulf-curricula/students') ||
-        pathname.startsWith('/courses-center/students');
+        pathname.startsWith('/egypt-gulf-curricula/students');
 
     const isTeacherSectionPath =
         (pathname.startsWith('/quran-and-sciences') && !pathname.startsWith('/quran-and-sciences/students')) ||
         (pathname.startsWith('/arabic-non-native') && !pathname.startsWith('/arabic-non-native/students')) ||
-        (pathname.startsWith('/egypt-gulf-curricula') && !pathname.startsWith('/egypt-gulf-curricula/students')) ||
-        (pathname.startsWith('/courses-center') && !pathname.startsWith('/courses-center/students'));
+        (pathname.startsWith('/egypt-gulf-curricula') && !pathname.startsWith('/egypt-gulf-curricula/students'));
+
+    // Admin-only explicit denial for non-admins for courses-center
+    if (pathname.startsWith('/courses-center')) {
+        if (userRole === 'student') {
+            return NextResponse.redirect(new URL('/student/profile', request.url));
+        } else if (userRole === 'teacher') {
+            return NextResponse.redirect(new URL('/teacher/dashboard', request.url));
+        }
+    }
 
     // 5. Apply Restrictions based on role
 

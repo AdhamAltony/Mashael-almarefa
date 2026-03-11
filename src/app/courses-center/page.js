@@ -13,12 +13,6 @@ const COURSES = [
   "إعداد معلم اللغة العربية للناطقين بغيرها",
 ];
 
-const NAV_LINKS = [
-  { label: "ركن القرآن", href: "/quran-and-sciences" },
-  { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
-  { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
-  { label: "مركز الدورات", href: "/courses-center" },
-];
 
 const EMPTY_FORM = {
   course: "",
@@ -282,14 +276,7 @@ function Navbar() {
               </div>
             </Link>
 
-            {/* Nav Links — large screens only */}
-            <nav aria-label="التنقل الرئيسي" className="hidden items-center gap-2 lg:flex xl:gap-3">
-              {NAV_LINKS.map((item) => (
-                <Link key={item.href} href={item.href} className="nav-link-pill">
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+
 
             {/* Home CTA */}
             <Link
