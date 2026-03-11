@@ -119,13 +119,13 @@ function Navbar() {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/auth/login"
-                className="hidden sm:inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-50 transition-all hover:bg-emerald-500/20 hover:-translate-y-0.5 sm:px-5 sm:py-3 sm:text-sm"
+                className="inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 sm:px-5 sm:py-3 text-[11px] sm:text-sm font-bold text-emerald-50 transition-all hover:bg-emerald-500/20 hover:-translate-y-0.5 shrink-0"
               >
                 تسجيل الدخول
               </Link>
               <Link
                 href="#platform-sections"
-                className="glow-button inline-flex items-center justify-center rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-500 sm:px-7 sm:py-3 sm:text-sm"
+                className="glow-button inline-flex items-center justify-center rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 px-3 py-2 sm:px-7 sm:py-3 text-[11px] sm:text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-500 shrink-0"
               >
                 ابدأ التعلّم
               </Link>
