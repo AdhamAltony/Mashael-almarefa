@@ -135,7 +135,7 @@ export default function AdminUsersPage() {
                             ) : (
                                 <tr>
                                     <td colSpan="4" className="py-8 text-center text-slate-500">
-                                        لا يوجد أعضاء في هذا القسم حالياً.
+                                        لا يوجد أعضاء في هذا القسم حاليًا.
                                     </td>
                                 </tr>
                             )}

@@ -3,6 +3,7 @@ import AdminNavbar from "./admin-navbar";
 const ADMIN_LINKS = [
   { label: "لوحة الإدارة", href: "/admin/dashboard" },
   { label: "لوحة التحكم", href: "/admin" },
+  { label: "تقارير المعلمين", href: "/admin/teacher-sessions" },
   { label: "مركز الدورات", href: "/courses-center" },
 ];
 

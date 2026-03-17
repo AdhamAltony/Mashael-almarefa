@@ -67,7 +67,7 @@ export default function LoginPage() {
           <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
             بوابة الدخول
           </p>
-          <h1 className="mt-4 text-2xl font-black text-emerald-950 sm:text-3xl">مرحباً بك مجدداً</h1>
+          <h1 className="mt-4 text-2xl font-black text-emerald-950 sm:text-3xl">مرحبًا بك مجددًا</h1>
           <p className="mt-2 text-sm text-slate-600">
             سجل دخولك للمنصة للوصول إلى لوحة التحكم الخاصة بك.
           </p>
@@ -91,7 +91,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 14v7" />
                 </svg>
-                <span className="font-bold text-emerald-900">طالب</span>
+                <span className="font-bold text-emerald-900">طالب 🎓</span>
               </div>
               {role === "student" && (
                 <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-300 animate-in zoom-in">
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 <svg className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                <span className="font-bold text-emerald-900">مدرس</span>
+                <span className="font-bold text-emerald-900">معلم 👨‍🏫</span>
               </div>
               {role === "teacher" && (
                 <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-300 animate-in zoom-in">
@@ -139,7 +139,7 @@ export default function LoginPage() {
                 <svg className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <span className="font-bold text-emerald-900">إدارة</span>
+                <span className="font-bold text-emerald-900">إداري 💼</span>
               </div>
               {role === "admin" && (
                 <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-300 animate-in zoom-in">
@@ -210,7 +210,7 @@ export default function LoginPage() {
           <div className="mt-4 text-center text-sm text-slate-600">
             ليس لديك حساب بعد؟{" "}
             <Link href="/auth/signup" className="font-bold text-emerald-700 hover:text-emerald-800">
-              أنشئ حساباً جديداً
+              أنشئ حسابًا جديدًا
             </Link>
           </div>
         </form>
