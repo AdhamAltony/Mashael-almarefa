@@ -25,20 +25,81 @@ function UsersIcon({ className = "w-6 h-6" }) {
   );
 }
 
+function AcademicCapIcon({ className = "w-6 h-6" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+    </svg>
+  );
+}
+
+function FaceSmileIcon({ className = "w-6 h-6" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm3.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75z" />
+    </svg>
+  );
+}
+
+function GlobeAltIcon({ className = "w-6 h-6" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0a9.015 9.015 0 01-9-4.5" />
+    </svg>
+  );
+}
+
+function StarIcon({ className = "w-6 h-6" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+  );
+}
 
 
 const audienceSegments = [
-  { title: "الطلاب العرب", description: "المناهج الدراسية في مصر والخليج." },
-  { title: "الأطفال", description: "تأسيس اللغة العربية واللغات الأجنبية." },
-  { title: "غير العرب", description: "تعليم اللغة العربية للناطقين بغيرها." },
-  { title: "حفظة القرآن", description: "تحفيظ + تجويد + إجازات." },
-  { title: "المعلمون والطلاب", description: "دورات تدريبية متخصصة." },
+  {
+    title: "الطلاب العرب",
+    description: "المناهج الدراسية في مصر والخليج.",
+    icon: AcademicCapIcon,
+    color: "from-blue-500 to-indigo-600",
+    shadow: "shadow-blue-500/20"
+  },
+  {
+    title: "الأطفال",
+    description: "تأسيس اللغة العربية واللغات الأجنبية.",
+    icon: FaceSmileIcon,
+    color: "from-amber-400 to-orange-500",
+    shadow: "shadow-orange-500/20"
+  },
+  {
+    title: "غير العرب",
+    description: "تعليم اللغة العربية للناطقين بغيرها.",
+    icon: GlobeAltIcon,
+    color: "from-emerald-400 to-teal-500",
+    shadow: "shadow-teal-500/20"
+  },
+  {
+    title: "حفظة القرآن",
+    description: "تحفيظ + تجويد + إجازات ومتون وسيرة نبوية.",
+    icon: BookIcon,
+    color: "from-purple-500 to-fuchsia-600",
+    shadow: "shadow-purple-500/20"
+  },
+  {
+    title: "المعلمون والطلاب",
+    description: "دورات تدريبية متخصصة.",
+    icon: UsersIcon,
+    color: "from-rose-500 to-pink-600",
+    shadow: "shadow-rose-500/20"
+  },
 ];
 
 const platformSections = [
   {
     id: "quran-and-sciences",
-    title: "1. ركن القرآن الكريم وعلومه",
+    title: "ركن القرآن الكريم وعلومه",
     items: [
       "تحفيظ تفاعلي بالصوت والصورة",
       "تقسيم حسب العمر والمستوى",
@@ -49,7 +110,7 @@ const platformSections = [
   },
   {
     id: "arabic-non-native",
-    title: "2. اللغة العربية لغير الناطقين بها",
+    title: "اللغة العربية لغير الناطقين بها",
     items: [
       "تأسيس الحروف والنطق الصحيح",
       "مهارات الاستماع والتحدث والقراءة والكتابة",
@@ -60,7 +121,7 @@ const platformSections = [
   },
   {
     id: "egypt-gulf-curricula",
-    title: "3. المناهج الدراسية (مصر + الخليج)",
+    title: "المناهج الدراسية (مصر + الخليج)",
     items: [
       "لغة عربية",
       "اللغات الأجنبية: (الإنجليزية، الفرنسية، الألمانية)",
@@ -72,14 +133,16 @@ const platformSections = [
   },
   {
     id: "courses-center",
-    title: "4. مركز الدورات",
-    intro: "نوع الدورة",
+    title: "الدورات:",
     items: [
       "النحو: تأسيس وتوظيف",
       "الصرف",
       "العَروض",
       "البلاغة",
-      "إعدا معلم اللغة العربية للناطقين بغيرها",
+      "إعداد معلم اللغة العربية للناطقين بغيرها",
+      "التطبيق اللغوي",
+      "دورة البحث العلمي ومناهجه",
+      "الكتابة الأكاديمية",
     ],
   },
 ];
@@ -155,6 +218,20 @@ function HeroSection() {
   );
 }
 
+function AnnouncementsSection() {
+  return (
+    <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 py-3 text-center shadow-md sm:py-4">
+      <div className="site-container flex flex-wrap items-center justify-center gap-2 text-white sm:gap-3">
+        <SparkIcon className="h-5 w-5 animate-pulse text-yellow-300" />
+        <p className="text-sm font-bold leading-relaxed sm:text-base">
+          إعلانات الدورات: بادر بالتسجيل الآن في <span className="text-yellow-300">دوراتنا الجديدة</span> (التطبيق اللغوي، دورة البحث العلمي ومناهجه، والكتابة الأكاديمية).
+        </p>
+        <SparkIcon className="hidden h-5 w-5 animate-pulse text-yellow-300 sm:block" />
+      </div>
+    </div>
+  );
+}
+
 function IdentitySection() {
   return (
     <section id="identity" className="section-spacing relative overflow-hidden bg-gradient-to-b from-[#eef6f5] via-[#f4f8f8] to-[#ecf4f4]">
@@ -186,23 +263,27 @@ function AudienceSection() {
   return (
     <section id="audience" className="section-spacing relative overflow-hidden bg-gradient-to-b from-[#f8fbfb] via-[#f2f8f8] to-[#eef5f5]">
       <div className="site-container relative z-10">
-        <div className="mb-12 text-center">
-          <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700">الفئات المستهدفة</span>
-          <h2 className="text-3xl font-black text-emerald-950 sm:text-4xl" style={{ lineHeight: 1.4 }}>
-            برامج مصممة لشرائح متنوعة
-          </h2>
+        <div className="mb-16 text-center">
+          <div className="mb-4 inline-flex items-center justify-center gap-3 rounded-full bg-emerald-100 px-8 py-3 shadow-md shadow-emerald-500/20 border border-emerald-200 text-emerald-700 hover:scale-105 transition-transform">
+            <StarIcon className="h-8 w-8" />
+            <span className="text-xl font-bold">الفئات المستهدفة</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {audienceSegments.map((item) => (
-            <article key={item.title} className="modern-card card-hover rounded-3xl p-7 shadow-lg shadow-emerald-500/10">
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                <UsersIcon className="h-6 w-6" />
-              </div>
-              <h3 className="mb-3 text-xl font-bold text-emerald-900">{item.title}</h3>
-              <p className="text-slate-700">{item.description}</p>
-            </article>
-          ))}
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
+          {audienceSegments.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title} className="modern-card card-hover group relative overflow-hidden rounded-3xl p-8 shadow-xl shadow-emerald-500/10">
+                <div className={`absolute top-0 right-0 -m-8 h-32 w-32 rounded-full bg-gradient-to-br ${item.color} opacity-5 transition-transform duration-500 group-hover:scale-[2]`}></div>
+                <div className={`mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br ${item.color} shadow-lg ${item.shadow} transition-transform duration-300 group-hover:-translate-y-2`}>
+                  <Icon className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="mb-4 text-2xl font-bold text-emerald-950 relative z-10">{item.title}</h3>
+                <p className="text-lg text-slate-700 relative z-10 leading-relaxed">{item.description}</p>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -215,23 +296,9 @@ function ServicesSection() {
       <div className="hero-mesh" />
       <div className="site-container relative z-10">
         <div className="mb-12 text-center">
-          <span className="mb-4 inline-block rounded-full border border-emerald-300/35 bg-white/10 px-5 py-2 text-sm font-bold text-emerald-200">ثالثاً</span>
           <h2 className="text-3xl font-black text-white sm:text-4xl" style={{ lineHeight: 1.4 }}>
-            أقسام المنصة الرئيسية
+            أقسام المنصة الرئيسة
           </h2>
-        </div>
-
-        <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
-          {platformSections.map((section) => (
-            <Link
-              key={section.id}
-              href={`#${section.id}`}
-              className="section-link-chip"
-            >
-              {section.title}
-              <SparkIcon className="h-4 w-4" />
-            </Link>
-          ))}
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -289,6 +356,7 @@ export default function Home() {
     <main className="overflow-x-clip">
       <Navbar />
       <HeroSection />
+      <AnnouncementsSection />
       <IdentitySection />
       <AudienceSection />
       <ServicesSection />
