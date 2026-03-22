@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AuthButtons from "@/components/auth-buttons";
 import ServicesSection from "@/components/services-section";
+import Image from "next/image";
 
 function SparkIcon({ className = "w-5 h-5" }) {
   return (
@@ -106,9 +107,15 @@ function Navbar() {
         <div className="site-container">
           <div className="flex min-h-[4.5rem] items-center justify-between gap-4">
             <Link href="#hero" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-              <div className="icon-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-xl font-bold text-white shadow-lg shadow-emerald-500/30 sm:h-12 sm:w-12">
-                م
+              <div className="icon-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30 sm:h-12 sm:w-12 relative overflow-hidden">
+                <Image
+                  src="/Logo.jpeg"
+                  alt="لوجو مشاعل المعرفة"
+                  fill
+                  className="object-cover rounded-xl"
+                />
               </div>
+
               <div className="flex min-w-0 flex-col">
                 <span className="truncate whitespace-nowrap text-base font-bold text-white sm:text-lg">مشاعل المعرفة</span>
                 <span className="hidden text-xs text-emerald-200/80 sm:block">منصة تعليمية متكاملة</span>
