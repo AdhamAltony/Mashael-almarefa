@@ -39,6 +39,19 @@ export default function TeacherDashboardPage() {
                 </div>
             </section>
 
+            {/* Profile Completion Prompt */}
+            <section className="mt-6">
+                <div className="modern-card rounded-3xl bg-gradient-to-r from-emerald-500 to-emerald-600 p-6 shadow-xl text-white">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="text-right">
+                            <h2 className="text-xl font-bold">أكمل ملفك الشخصي الآن!</h2>
+                            <p className="mt-1 text-emerald-50 opacity-90 text-sm">اجذب المزيد من الطلاب بإضافة مهاراتك، خبراتك، ومواعيدك المتاحة.</p>
+                        </div>
+                        <a href="/teacher/profile" className="shrink-0 bg-white text-emerald-600 px-6 py-2.5 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-lg">تعديل الملف الشخصي</a>
+                    </div>
+                </div>
+            </section>
+
             <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {TEACHER_STATS.map((stat) => (
                     <article key={stat.label} className="modern-card rounded-2xl border border-emerald-100/70 p-5 shadow-lg shadow-emerald-900/5 hover:-translate-y-1 transition-transform">

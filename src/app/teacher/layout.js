@@ -15,13 +15,23 @@ export default async function TeacherLayout({ children }) {
       const course = sessionData.course;
 
       if (course === "ركن القرآن") {
-        teacherLinks = [{ label: "طلاب القسم", href: "/quran-and-sciences/students" }];
+        teacherLinks = [
+          { label: "الملف الشخصي", href: "/teacher/profile" },
+          { label: "طلاب القسم", href: "/quran-and-sciences/students" }
+        ];
       } else if (course === "العربية لغير الناطقين") {
-        teacherLinks = [{ label: "طلاب القسم", href: "/arabic-non-native/students" }];
+        teacherLinks = [
+          { label: "الملف الشخصي", href: "/teacher/profile" },
+          { label: "طلاب القسم", href: "/arabic-non-native/students" }
+        ];
       } else if (course === "المناهج الدراسية") {
-        teacherLinks = [{ label: "طلاب القسم", href: "/egypt-gulf-curricula/students" }];
+        teacherLinks = [
+          { label: "الملف الشخصي", href: "/teacher/profile" },
+          { label: "طلاب القسم", href: "/egypt-gulf-curricula/students" }
+        ];
       } else {
         teacherLinks = [
+          { label: "الملف الشخصي", href: "/teacher/profile" },
           { label: "ركن القرآن", href: "/quran-and-sciences" },
           { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
           { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
@@ -30,6 +40,7 @@ export default async function TeacherLayout({ children }) {
     } catch (e) {
       console.error(e);
       teacherLinks = [
+        { label: "الملف الشخصي", href: "/teacher/profile" },
         { label: "ركن القرآن", href: "/quran-and-sciences" },
         { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
         { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
@@ -37,6 +48,7 @@ export default async function TeacherLayout({ children }) {
     }
   } else {
     teacherLinks = [
+      { label: "الملف الشخصي", href: "/teacher/profile" },
       { label: "ركن القرآن", href: "/quran-and-sciences" },
       { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
       { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
