@@ -5,6 +5,58 @@ import { useState } from "react";
 
 export default function SignupPage() {
     const [role, setRole] = useState("student");
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        phone: "",
+        guardianPhone: "",
+        countryCode: "+20",
+        countryName: "مصر"
+    });
+
+    const handleInputChange = (e) => {
+        setFormData({ ...formData, [e.target.id]: e.target.value });
+    };
+
+    const countries = [
+        { name: "مصر", code: "+20" },
+        { name: "السعودية", code: "+966" },
+        { name: "الإمارات", code: "+971" },
+        { name: "الكويت", code: "+965" },
+        { name: "قطر", code: "+974" },
+        { name: "البحرين", code: "+973" },
+        { name: "عمان", code: "+968" },
+        { name: "الأردن", code: "+962" },
+        { name: "المغرب", code: "+212" },
+    ];
+
+    const [error, setError] = useState("");
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setError("");
+
+        if (!formData.name || !formData.email || !formData.password || !formData.phone) {
+            setError("الرجاء ملء جميع الحقول المطلوبة.");
+            return;
+        }
+
+        if (role === "student" && !formData.guardianPhone) {
+            setError("الرجاء إدخال رقم هاتف ولي الأمر.");
+            return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            setError("كلمات المرور غير متطابقة.");
+            return;
+        }
+
+        // Simulating success
+        alert("تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.");
+        window.location.href = "/auth/login";
+    };
 
     return (
         <main className="site-container flex min-h-[calc(100vh-140px)] items-center justify-center py-10" dir="rtl">
@@ -19,7 +71,7 @@ export default function SignupPage() {
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-5">
+                <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                     {/* Role Selection using beautiful radio buttons */}
                     <div className="flex gap-4">
                         <label className="relative flex-1 cursor-pointer">
@@ -73,29 +125,97 @@ export default function SignupPage() {
                         </label>
                     </div>
 
-                    <div>
-                        <label htmlFor="name" className="mb-1.5 block text-sm font-bold text-emerald-900">
-                            الاسم الكامل
-                        </label>
-                        <input
-                            id="name"
-                            type="text"
-                            placeholder="الاسم الثلاثي"
-                            className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
-                        />
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                            <label htmlFor="name" className="mb-1.5 block text-sm font-bold text-emerald-900">
+                                الاسم الكامل
+                            </label>
+                            <input
+                                id="name"
+                                type="text"
+                                placeholder="الاسم الثلاثي"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="email" className="mb-1.5 block text-sm font-bold text-emerald-900">
+                                البريد الإلكتروني
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                placeholder="name@example.com"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label htmlFor="email" className="mb-1.5 block text-sm font-bold text-emerald-900">
-                            البريد الإلكتروني
-                        </label>
-                        <input
-                            id="email"
-                            type="email"
-                            placeholder="name@example.com"
-                            className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
-                        />
+                    {/* Country and Code */}
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                            <label className="mb-1.5 block text-sm font-bold text-emerald-900">
+                                الدولة
+                            </label>
+                            <select
+                                id="countryName"
+                                value={formData.countryName}
+                                onChange={(e) => {
+                                    const selected = countries.find(c => c.name === e.target.value);
+                                    setFormData({ ...formData, countryName: e.target.value, countryCode: selected.code });
+                                }}
+                                className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
+                            >
+                                {countries.map((c) => (
+                                    <option key={c.name} value={c.name}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="phone" className="mb-1.5 block text-sm font-bold text-emerald-900">
+                                {role === "student" ? "رقم هاتف الطالب" : "رقم هاتف المدرس"}
+                            </label>
+                            <div className="flex gap-2" dir="ltr">
+                                <div className="flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 font-bold text-emerald-700">
+                                    {formData.countryCode}
+                                </div>
+                                <input
+                                    id="phone"
+                                    type="tel"
+                                    placeholder="100 000 0000"
+                                    value={formData.phone}
+                                    onChange={handleInputChange}
+                                    className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-955 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 text-right"
+                                />
+                            </div>
+                        </div>
                     </div>
+
+                    {role === "student" && (
+                        <div>
+                            <label htmlFor="guardianPhone" className="mb-1.5 block text-sm font-bold text-emerald-900">
+                                رقم هاتف ولي الأمر
+                            </label>
+                            <div className="flex gap-2" dir="ltr">
+                                <div className="flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 font-bold text-emerald-700">
+                                    {formData.countryCode}
+                                </div>
+                                <input
+                                    id="guardianPhone"
+                                    type="tel"
+                                    placeholder="100 000 0000"
+                                    value={formData.guardianPhone}
+                                    onChange={handleInputChange}
+                                    className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-955 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 text-right"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div>
@@ -106,6 +226,8 @@ export default function SignupPage() {
                                 id="password"
                                 type="password"
                                 placeholder="********"
+                                value={formData.password}
+                                onChange={handleInputChange}
                                 className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
                             />
                         </div>
@@ -118,10 +240,18 @@ export default function SignupPage() {
                                 id="confirmPassword"
                                 type="password"
                                 placeholder="********"
+                                value={formData.confirmPassword}
+                                onChange={handleInputChange}
                                 className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
                             />
                         </div>
                     </div>
+
+                    {error && (
+                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
+                            {error}
+                        </div>
+                    )}
 
                     <button
                         type="submit"
