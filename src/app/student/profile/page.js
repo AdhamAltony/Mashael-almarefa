@@ -75,7 +75,7 @@ export default function StudentProfilePage() {
         if (savedProgress) {
           setProgressData(JSON.parse(savedProgress));
         }
-      } catch (e) { }
+      } catch { }
     }
   }, []);
 

@@ -19,8 +19,8 @@ export default function TeacherNavbar({ sectionTitle, links, ctaLabel, ctaHref, 
                     const decoded = decodeURIComponent(atob(base64));
                     const data = JSON.parse(decoded);
                     setSession(data);
-                } catch (e) {
-                    console.error("Failed to parse session", e);
+                } catch {
+                    console.error("Failed to parse session");
                     // fallback session
                     setSession({ role: "teacher", name: "معلم تجريبي", email: "teacher@gmail.com" });
                 }

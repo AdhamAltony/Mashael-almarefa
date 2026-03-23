@@ -22,8 +22,8 @@ export default function AdminNavbar({ sectionTitle, links }) {
                     const decoded = decodeURIComponent(atob(base64));
                     const data = JSON.parse(decoded);
                     setSession(data);
-                } catch (e) {
-                    console.error("Failed to parse session", e);
+                } catch {
+                    console.error("Failed to parse session");
                     // fallback session
                     setSession({ role: "admin", name: "مدير النظام", email: "admin@gmail.com" });
                 }

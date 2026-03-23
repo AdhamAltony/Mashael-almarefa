@@ -43,7 +43,7 @@ export function middleware(request) {
             const jsonStr = decodeURIComponent(uriEncodedStr);
             const sessionData = JSON.parse(jsonStr);
             userCourse = sessionData.course || "";
-        } catch (e) {
+        } catch {
             // ignore
         }
     }

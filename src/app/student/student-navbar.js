@@ -21,8 +21,8 @@ export default function StudentNavbar({ sectionTitle, links, ctaLabel, ctaHref }
                         const decoded = decodeURIComponent(atob(base64));
                         const data = JSON.parse(decoded);
                         setSession(data);
-                    } catch (e) {
-                        console.error("Failed to parse session", e);
+                    } catch {
+                        console.error("Failed to parse session");
                         setSession({ role: "student", name: "طالب تجريبي", email: "student@gmail.com" });
                     }
                 } else {

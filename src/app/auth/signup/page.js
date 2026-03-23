@@ -190,7 +190,7 @@ export default function SignupPage() {
                                     placeholder="100 000 0000"
                                     value={formData.phone}
                                     onChange={handleInputChange}
-                                    className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-955 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 text-right"
+                                    className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 text-right"
                                 />
                             </div>
                         </div>
@@ -211,7 +211,7 @@ export default function SignupPage() {
                                     placeholder="100 000 0000"
                                     value={formData.guardianPhone}
                                     onChange={handleInputChange}
-                                    className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-955 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 text-right"
+                                    className="w-full rounded-xl border border-emerald-200 bg-white/85 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 text-right"
                                 />
                             </div>
                         </div>

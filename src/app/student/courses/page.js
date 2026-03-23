@@ -34,8 +34,8 @@ export default function StudentCoursesPage() {
                 // We'll show all courses and let the middleware handle access control 
                 // when they click 'Watch Course'.
                 setAssignedCourses(ALL_COURSES);
-            } catch (e) {
-                console.error("Error parsing session", e);
+            } catch {
+                console.error("Error parsing session");
                 setAssignedCourses(ALL_COURSES);
             }
         } else {

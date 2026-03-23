@@ -53,8 +53,8 @@ export default function StudentDashboardPage() {
         if (savedSessions) {
           setSessions(JSON.parse(savedSessions));
         }
-      } catch (e) {
-        console.error("Failed to parse session", e);
+      } catch {
+        console.error("Failed to parse session");
       }
     }
   }, []);
