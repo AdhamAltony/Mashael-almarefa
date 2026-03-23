@@ -24,14 +24,19 @@ export default async function StudentLayout({ children }) {
     }
   }
 
-  const STUDENT_LINKS = [
+  const STUDENT_LINKS = sessionCookie ? [
     { label: "الملف الشخصي", href: "/student/profile" },
     { label: "معلميني", href: teacherLink },
-  ];
+  ] : [];
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#f8fbfb] via-[#f2f8f8] to-[#eef5f5]">
-      <StudentNavbar sectionTitle="بوابة الطالب" links={STUDENT_LINKS} ctaLabel="الرئيسية" ctaHref="/" />
+      <StudentNavbar 
+        sectionTitle={sessionCookie ? "بوابة الطالب" : "منصة مشاعل المعرفة"} 
+        links={STUDENT_LINKS} 
+        ctaLabel="الرئيسية" 
+        ctaHref="/" 
+      />
       <div className="pt-24">{children}</div>
     </div>
   );

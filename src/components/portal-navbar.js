@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 export default function PortalNavbar({ sectionTitle, links = [], ctaLabel = "الصفحة الرئيسية", ctaHref = "/", userSession = null, onLogout, showCtaWithSession = false }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isLoginPage = pathname === "/auth/login";
 
   return (
     <nav className="fixed right-0 left-0 top-0 z-50" dir="rtl">
@@ -64,6 +68,14 @@ export default function PortalNavbar({ sectionTitle, links = [], ctaLabel = "ا�
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                   </svg>
                   <span>{ctaLabel}</span>
+                </Link>
+              )}
+              {!userSession && !isLoginPage && (
+                <Link
+                  href="/auth/login"
+                  className="hidden sm:inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-50 transition-all hover:bg-emerald-500/20 hover:-translate-y-0.5"
+                >
+                  تسجيل الدخول
                 </Link>
               )}
               {userSession && (

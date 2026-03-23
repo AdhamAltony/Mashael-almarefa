@@ -27,22 +27,18 @@ export default function StudentCoursesPage() {
                 const userData = JSON.parse(decodeURIComponent(atob(sessionCookie.split("=")[1])));
                 setUser(userData);
 
-                // 2. Get assigned courses from localStorage (Simulating database)
-                // The key is 'assigned_courses_' + user_email
-                const storedAssignments = localStorage.getItem(`assigned_courses_${userData.email}`);
-                if (storedAssignments) {
-                    const assignedIds = JSON.parse(storedAssignments);
-                    const filtered = ALL_COURSES.filter(c => assignedIds.includes(c.id));
-                    setAssignedCourses(filtered);
-                } else {
-                    // For demo: Show these courses by default if nothing is assigned
-                    const demoIds = ['c1', 'c2'];
-                    const filtered = ALL_COURSES.filter(c => demoIds.includes(c.id));
-                    setAssignedCourses(filtered);
-                }
+                // For logged-in students, we typically show assigned courses, 
+                // but the user wants ALL courses to be visible for everyone.
+                // We'll show all courses and let the middleware handle access control 
+                // when they click 'Watch Course'.
+                setAssignedCourses(ALL_COURSES);
             } catch (e) {
                 console.error("Error parsing session", e);
+                setAssignedCourses(ALL_COURSES);
             }
+        } else {
+            // Guest user: show all courses so they can see what we offer
+            setAssignedCourses(ALL_COURSES);
         }
         setLoading(false);
     }, []);

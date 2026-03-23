@@ -115,7 +115,6 @@ function Navbar() {
                   className="object-cover rounded-xl"
                 />
               </div>
-
               <div className="flex min-w-0 flex-col">
                 <span className="truncate whitespace-nowrap text-base font-bold text-white sm:text-lg">مشاعل المعرفة</span>
                 <span className="hidden text-xs text-emerald-200/80 sm:block">منصة تعليمية متكاملة</span>

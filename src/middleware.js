@@ -7,7 +7,13 @@ export function middleware(request) {
     const { pathname, searchParams } = request.nextUrl;
 
     // 1. Allow public routes
-    if (pathname === '/' || pathname.startsWith('/auth')) {
+    const isPublicGuestRoute = 
+        pathname === '/student/quran-teachers' || 
+        pathname === '/student/arabic-teachers' || 
+        pathname === '/student/curricula-teachers' ||
+        pathname === '/student/courses';
+
+    if (pathname === '/' || pathname.startsWith('/auth') || isPublicGuestRoute) {
         // Redirect logged in users away from auth pages unless they are explicitly logging out
         if (userRole && pathname.startsWith('/auth') && !searchParams.get('logout')) {
             if (userRole === 'student') return NextResponse.redirect(new URL('/student/profile', request.url));
