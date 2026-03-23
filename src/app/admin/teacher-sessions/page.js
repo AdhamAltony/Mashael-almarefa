@@ -33,7 +33,7 @@ const TEACHERS_DATA = [
   },
 ];
 
-export default function TeacherSessionsPage() {
+export default function AdminTeacherSessionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredTeachers = TEACHERS_DATA.filter((t) =>

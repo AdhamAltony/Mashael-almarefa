@@ -392,7 +392,7 @@ function FooterSection() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function TeacherSessionPage() {
+export default function QuranAndSciencesSessionPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
