@@ -47,6 +47,17 @@ export default function StudentProfilePage() {
     nextClass: "السبت 7 مارس 2026 - 6:00 م",
   });
 
+  const [progressData, setProgressData] = useState({
+    attendance: "96",
+    rating: "8.6",
+    hours: "42",
+    nextLesson: "السبت 7 مارس 2026 - 6:00 م",
+    reading: 86,
+    writing: 78,
+    listening: 91,
+    conversation: 74
+  });
+
   useEffect(() => {
     const cookies = document.cookie.split("; ");
     const sessionCookie = cookies.find(c => c.startsWith("session="));
@@ -60,6 +71,12 @@ export default function StudentProfilePage() {
           level: data.course ? `مسجل في: ${data.course}` : prev.level,
           email: data.email || prev.email,
         }));
+
+        // Fetch progress from localStorage using email
+        const savedProgress = localStorage.getItem(`progress_${data.email}`);
+        if (savedProgress) {
+          setProgressData(JSON.parse(savedProgress));
+        }
       } catch (e) { }
     }
   }, []);
@@ -113,10 +130,10 @@ export default function StudentProfilePage() {
         </section>
 
         <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="نسبة الحضور" value="96%" hint="غياب حصة واحدة فقط هذا الشهر" />
-          <StatCard label="متوسط التقييم" value="8.6 / 10" hint="آخر 12 حصة" />
-          <StatCard label="الساعات المنجزة" value="42 ساعة" hint="منذ تاريخ التسجيل" />
-          <StatCard label="الحصة القادمة" value="السبت" hint="7 مارس 2026 - 6:00 م" />
+          <StatCard label="نسبة الحضور" value={`${progressData.attendance}%`} hint="غياب حصة واحدة فقط هذا الشهر" />
+          <StatCard label="متوسط التقييم" value={`${progressData.rating} / 10`} hint="آخر 12 حصة" />
+          <StatCard label="الساعات المنجزة" value={`${progressData.hours} ساعة`} hint="منذ تاريخ التسجيل" />
+          <StatCard label="الحصة القادمة" value={progressData.nextLesson.split(" - ")[0]} hint={progressData.nextLesson.split(" - ")[1] || "موعد الحصة المجدولة"} />
         </section>
 
         <section className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -124,20 +141,28 @@ export default function StudentProfilePage() {
             <h2 className="text-xl font-black text-emerald-950">تقدم المهارات</h2>
             <p className="mt-2 text-sm text-slate-600">مستوى الطالبة في المهارات الأساسية خلال آخر تقييم شهري.</p>
             <div className="mt-6 space-y-4">
-              {PROGRESS.map((skill) => (
-                <div key={skill.title}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-bold text-emerald-900">{skill.title}</span>
-                    <span className="font-bold text-emerald-700">{skill.value}%</span>
+              {[
+                { title: "القراءة", value: progressData.reading },
+                { title: "الكتابة", value: progressData.writing },
+                { title: "الاستماع", value: progressData.listening },
+                { title: "المحادثة", value: progressData.conversation },
+              ].map((skill) => {
+                const val = parseInt(skill.value) || 0;
+                return (
+                  <div key={skill.title}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-bold text-emerald-900">{skill.title}</span>
+                      <span className="font-bold text-emerald-700">{val}%</span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-emerald-100">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-1000"
+                        style={{ width: `${val}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-emerald-100">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
-                      style={{ width: `${skill.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </article>
 
