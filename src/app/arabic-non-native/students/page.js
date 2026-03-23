@@ -153,7 +153,7 @@ function FooterSection() {
     );
 }
 
-export default function StudentsListPage() {
+export default function ArabicStudentsListPage() {
     const [selectedStudent, setSelectedStudent] = useState(null);
 
     const handleSave = (studentEmail, progress) => {

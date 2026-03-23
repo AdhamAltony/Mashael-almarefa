@@ -157,7 +157,7 @@ function FooterSection() {
     );
 }
 
-export default function StudentsListPage() {
+export default function QuranStudentsListPage() {
     const [selectedStudent, setSelectedStudent] = useState(null);
 
     const handleSave = (studentId, progress) => {

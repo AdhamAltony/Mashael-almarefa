@@ -75,7 +75,7 @@ export default function StudentProfilePage() {
         if (savedProgress) {
           setProgressData(JSON.parse(savedProgress));
         }
-      } catch (e) { }
+      } catch { }
     }
   }, []);
 
@@ -215,7 +215,7 @@ export default function StudentProfilePage() {
             <h2 className="text-xl font-black text-emerald-950">الإنجازات والملاحظات</h2>
             <ul className="mt-4 space-y-3">
               {progressData.achievements ? (
-                progressData.achievements.split('\n').filter(a => a.trim()).map((item, idx) => (
+                progressData.achievements?.split('\n').filter(a => a.trim()).map((item, idx) => (
                   <li key={idx} className="flex gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-4 text-sm text-slate-700">
                     <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
                     <span>{item}</span>

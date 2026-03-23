@@ -58,7 +58,7 @@ export default function QuranTeachersPage() {
                 const decoded = decodeURIComponent(atob(base64));
                 const data = JSON.parse(decoded);
                 if (data.course) setCourse(data.course);
-            } catch (e) { }
+            } catch { }
         }
     }, []);
 

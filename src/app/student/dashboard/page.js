@@ -150,7 +150,7 @@ export default function StudentDashboardPage() {
             <div className="mt-6">
               <h3 className="font-bold text-emerald-900 mb-3">أبرز الإنجازات:</h3>
               <ul className="space-y-2">
-                {progressData.achievements.split('\n').filter(a => a.trim()).slice(0, 3).map((a, idx) => (
+                {progressData.achievements?.split('\n').filter(a => a.trim()).slice(0, 3).map((a, idx) => (
                    <li key={idx} className="text-sm text-slate-700 flex gap-2">
                      <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                      {a}
