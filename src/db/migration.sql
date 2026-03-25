@@ -44,7 +44,9 @@ CREATE TABLE IF NOT EXISTS students (
     guardian_name VARCHAR(255),
     guardian_phone VARCHAR(20),
     current_level VARCHAR(100),
-    department VARCHAR(100)
+    department VARCHAR(100),
+    registered_subjects JSONB DEFAULT '[]',
+    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5. Courses
@@ -63,6 +65,16 @@ CREATE TABLE IF NOT EXISTS course_videos (
     thumbnail_url TEXT NOT NULL,
     notes TEXT,
     upload_date DATE DEFAULT CURRENT_DATE
+);
+
+-- 7. Student Video Progress (New Dynamic Tracker)
+CREATE TABLE IF NOT EXISTS student_video_progress (
+    id SERIAL PRIMARY KEY,
+    student_id UUID REFERENCES students(user_id) ON DELETE CASCADE,
+    video_id INT REFERENCES course_videos(id) ON DELETE CASCADE,
+    is_completed BOOLEAN DEFAULT FALSE,
+    watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, video_id)
 );
 
 -- 7. Sessions
