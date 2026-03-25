@@ -9,17 +9,41 @@ export default function AdminDashboardPage() {
     { label: "الحصص المكتملة", value: "34", delta: "تحديث تلقائي", key: "admin_total_sessions" },
   ]);
 
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState("");
+
   useEffect(() => {
     // Read dynamic values from localStorage
     const savedSessions = localStorage.getItem("admin_total_sessions") || "34";
     setStats(prev => prev.map(s => s.key === "admin_total_sessions" ? { ...s, value: savedSessions } : s));
+
+    // Read tasks from localStorage
+    const savedTasks = localStorage.getItem("admin_tasks");
+    if (savedTasks) {
+      setTasks(JSON.parse(savedTasks));
+    } else {
+      setTasks([
+        "مراجعة طلبي تسجيل جديدين في قسم غير الناطقين بالعربية",
+        "اعتماد خطة اختبارات الحفظ للأسبوع القادم",
+        "تأكيد جدول المعلمين لشهر مارس 2026",
+      ]);
+    }
   }, []);
 
-  const PENDING_TASKS = [
-    "مراجعة طلبي تسجيل جديدين في قسم غير الناطقين بالعربية",
-    "اعتماد خطة اختبارات الحفظ للأسبوع القادم",
-    "تأكيد جدول المعلمين لشهر مارس 2026",
-  ];
+  const addTask = (e) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    const updatedTasks = [newTask, ...tasks];
+    setTasks(updatedTasks);
+    localStorage.setItem("admin_tasks", JSON.stringify(updatedTasks));
+    setNewTask("");
+  };
+
+  const removeTask = (index) => {
+    const updatedTasks = tasks.filter((_, i) => i !== index);
+    setTasks(updatedTasks);
+    localStorage.setItem("admin_tasks", JSON.stringify(updatedTasks));
+  };
 
   return (
     <main className="site-container py-10" dir="rtl">
@@ -43,13 +67,42 @@ export default function AdminDashboardPage() {
 
       <section className="mt-6">
         <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-          <h2 className="text-xl font-black text-emerald-950">المهام المعلّقة</h2>
-          <ul className="mt-4 space-y-3 text-sm text-slate-700">
-            {PENDING_TASKS.map((task) => (
-              <li key={task} className="rounded-2xl border border-emerald-100 bg-white/70 p-4 transition-colors hover:bg-emerald-50/50">
-                {task}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-xl font-black text-emerald-950">المهام المعلّقة</h2>
+            <form onSubmit={addTask} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="أضف مهمة جديدة..."
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+                className="rounded-xl border border-emerald-100 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500"
+              />
+              <button
+                type="submit"
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-emerald-700"
+              >
+                إضافة
+              </button>
+            </form>
+          </div>
+          
+          <ul className="mt-6 space-y-3 text-sm text-slate-700">
+            {tasks.length > 0 ? tasks.map((task, index) => (
+              <li key={index} className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-white/70 p-4 transition-colors hover:bg-emerald-50/50">
+                <span>{task}</span>
+                <button
+                  onClick={() => removeTask(index)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                  title="حذف المهمة"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </li>
-            ))}
+            )) : (
+              <p className="py-6 text-center text-slate-500 italic">لا توجد مهام معلقة.. كل شيء تحت السيطرة!</p>
+            )}
           </ul>
         </article>
       </section>
