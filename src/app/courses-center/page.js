@@ -1,18 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
-// ─── Static Data (module-level, never re-created) ─────────────────────────────
+// ─── Default Static Data ──────────────────────────────────────────────────────
 
-const COURSES = [
+const INITIAL_COURSES = [
   "النحو: تأسيس وتوظيف",
   "الصرف",
   "العَروض",
   "البلاغة",
   "إعداد معلم اللغة العربية للناطقين بغيرها",
 ];
-
 
 const EMPTY_FORM = {
   course: "",
@@ -33,20 +32,6 @@ const BORDER_ERR =
 
 // ─── Atomic UI Helpers ────────────────────────────────────────────────────────
 
-function ChevronDown() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-    </svg>
-  );
-}
-
 function FieldError({ message }) {
   return message ? (
     <p role="alert" className="mt-1.5 text-xs font-bold text-red-500">
@@ -55,23 +40,9 @@ function FieldError({ message }) {
   ) : null;
 }
 
-function SelectWrapper({ children }) {
-  return (
-    <div className="relative">
-      {children}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 left-0 top-0 flex items-center px-4 text-emerald-600"
-      >
-        <ChevronDown />
-      </span>
-    </div>
-  );
-}
-
 // ─── Session Form ─────────────────────────────────────────────────────────────
 
-function CourseForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
+function CourseForm({ formData, errors, isSubmitting, onChange, onSubmit, existingCourses }) {
   const border = (key) => (errors[key] ? BORDER_ERR : BORDER_OK);
 
   return (
@@ -82,16 +53,25 @@ function CourseForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
           <label htmlFor="course" className="block text-sm font-bold text-emerald-950">
             اسم الدورة <span className="text-red-500">*</span>
           </label>
-          <input
-            id="course"
-            name="course"
-            type="text"
-            value={formData.course}
-            onChange={onChange}
-            placeholder="أدخل اسم الدورة..."
-            className={`${INPUT_BASE} ${border("course")}`}
-          />
+          <div className="relative">
+            <input
+                id="course"
+                name="course"
+                type="text"
+                list="courses-list"
+                value={formData.course}
+                onChange={onChange}
+                placeholder="أدخل اسم الدورة..."
+                className={`${INPUT_BASE} ${border("course")}`}
+            />
+            <datalist id="courses-list">
+                {existingCourses.map((c, i) => (
+                    <option key={i} value={c} />
+                ))}
+            </datalist>
+          </div>
           <FieldError message={errors.course} />
+          <p className="text-[10px] text-slate-500 font-medium mt-1">يمكنك الاختيار من القائمة أو كتابة اسم دورة جديد سيتم إضافته للنظام تلقائياً.</p>
         </div>
 
         {/* ── Date ── */}
@@ -262,7 +242,7 @@ function SuccessMessage({ onReset }) {
       </div>
       <h2 className="mb-3 text-2xl font-bold text-emerald-950">تم رفع الدورة بنجاح!</h2>
       <p className="mb-8 text-slate-600">
-        تم رفع فيديو الدورة وحفظ الملاحظات بنجاح في النظام.
+        تم رفع فيديو الدورة وحفظ الملاحظات بنجاح في النظام، وتمت إضافة اسم الدورة للقائمة المتاحة.
       </p>
       <button
         onClick={onReset}
@@ -319,7 +299,7 @@ function Navbar() {
 
 // ─── FooterSection ─────────────────────────────────────────────────────────────
 
-function FooterSection() {
+function FooterSection({ currentYear }) {
   return (
     <footer id="contact" className="relative overflow-hidden bg-[#041722] text-emerald-50">
       <div className="site-container py-12">
@@ -334,12 +314,12 @@ function FooterSection() {
             <h4 className="mb-3 text-lg font-bold">تواصل معنا</h4>
             <p className="text-sm text-emerald-100/85">البريد الإلكتروني: info@mashael-almaarifa.com</p>
             <p className="mt-2 text-sm text-emerald-100/85" dir="ltr">
-              WhatsApp: +20 100 000 0000
+              WhatsApp: +20 121 021 2176
             </p>
           </div>
         </div>
         <div className="mt-10 border-t border-emerald-200/15 pt-6 text-center text-sm text-emerald-100/70">
-          © {new Date().getFullYear()} مشاعل المعرفة. جميع الحقوق محفوظة.
+          © {currentYear || "2026"} مشاعل المعرفة. جميع الحقوق محفوظة.
         </div>
       </div>
     </footer>
@@ -353,6 +333,20 @@ export default function CoursesCenterPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [currentYear, setCurrentYear] = useState(null);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+    // Load courses from localStorage
+    const savedCourses = localStorage.getItem("platform_courses");
+    if (savedCourses) {
+      setCourses(JSON.parse(savedCourses));
+    } else {
+      setCourses(INITIAL_COURSES);
+      localStorage.setItem("platform_courses", JSON.stringify(INITIAL_COURSES));
+    }
+  }, []);
 
   // Stable references — won't trigger child re-renders on each parent render
   const handleChange = useCallback((e) => {
@@ -379,14 +373,24 @@ export default function CoursesCenterPage() {
       e.preventDefault();
       if (!validate()) return;
       setIsSubmitting(true);
+
+      // Add course to the list if it's new
+      const currentCourse = formData.course.trim();
+      const updatedCourses = courses.includes(currentCourse) 
+        ? courses 
+        : [...courses, currentCourse];
+      
+      setCourses(updatedCourses);
+      localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+
       // Simulated network request (uploading file)
       setTimeout(() => {
         setIsSubmitting(false);
         setIsSuccess(true);
         setFormData(EMPTY_FORM);
-      }, 2500); // slightly longer to simulate upload
+      }, 2000);
     },
-    [validate]
+    [validate, courses, formData.course]
   );
 
   const handleReset = useCallback(() => {
@@ -399,19 +403,15 @@ export default function CoursesCenterPage() {
       dir="rtl"
       className="relative flex min-h-[100dvh] flex-col overflow-x-clip text-emerald-950 font-sans"
     >
-      {/* Light Gradient Background matching the Identity/Audience Sections */}
       <div className="fixed inset-0 z-[-1] bg-gradient-to-b from-[#f8fbfb] via-[#f2f8f8] to-[#eef5f5]">
-        {/* Decorative subtle blurs for depth */}
         <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-100/60 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 h-[600px] w-[600px] translate-x-1/3 translate-y-1/4 rounded-full bg-emerald-50/80 blur-3xl pointer-events-none" />
       </div>
 
       <Navbar />
 
-      {/* ── Main Content ── */}
       <section className="relative z-10 flex flex-1 flex-col justify-center px-4 pt-28 pb-16 sm:px-6 sm:pt-32 sm:pb-24">
         <div className="mx-auto w-full max-w-3xl">
-          {/* Page Header */}
           <header className="mb-10 text-center">
             <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700 shadow-sm border border-emerald-200/50">
               مركز الدورات
@@ -420,12 +420,11 @@ export default function CoursesCenterPage() {
               رفع الفيديوهات والملاحظات
             </h1>
             <p className="mx-auto max-w-xl text-base text-slate-600 sm:text-lg text-balance">
-              يرجى اختيار الدورة ورفع الفيديو الخاص بها مع إضافة أي ملاحظات توضيحية.
+              يرجى إدخال اسم الدورة ورفع الفيديو الخاص بها. إذا كان اسم الدورة جديداً، فسيتم إضافته للقائمة تلقائياً.
             </p>
           </header>
 
-          {/* Form Card (Modern Light Theme) */}
-          <div className="modern-card relative overflow-hidden rounded-[2rem] p-6 shadow-2xl shadow-emerald-900/5 sm:p-10 border border-white/60">
+          <div className="modern-card relative overflow-hidden rounded-[2rem] p-6 shadow-2xl shadow-emerald-900/5 sm:p-10 border border-white/60 bg-white/40 backdrop-blur-md">
             {isSuccess ? (
               <SuccessMessage onReset={handleReset} />
             ) : (
@@ -435,6 +434,7 @@ export default function CoursesCenterPage() {
                 isSubmitting={isSubmitting}
                 onChange={handleChange}
                 onSubmit={handleSubmit}
+                existingCourses={courses}
               />
             )}
           </div>
@@ -442,7 +442,7 @@ export default function CoursesCenterPage() {
       </section>
 
       <div className="mt-auto w-full relative z-20">
-        <FooterSection />
+        <FooterSection currentYear={currentYear} />
       </div>
     </main>
   );
