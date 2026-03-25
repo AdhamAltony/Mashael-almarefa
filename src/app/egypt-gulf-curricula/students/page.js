@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import TeacherNavbar from "../../teacher/teacher-navbar";
-import Footer from "@/components/footer";
 
 const NAV_LINKS = [
     { label: "طلاب القسم", href: "/egypt-gulf-curricula/students" },
@@ -92,7 +91,6 @@ function ProgressModal({ student, onClose, onSave }) {
                         </div>
                     </div>
 
-                    {/* Achievements and Notes */}
                     <div className="mt-8 space-y-4">
                         <h3 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2">الإنجازات والملاحظات</h3>
                         <div>
@@ -127,7 +125,7 @@ function ProgressModal({ student, onClose, onSave }) {
     );
 }
 
-function FooterSection() {
+function FooterSection({ currentYear }) {
     return (
         <footer id="contact" className="relative overflow-hidden bg-[#041722] text-emerald-50">
             <div className="site-container py-12">
@@ -147,7 +145,7 @@ function FooterSection() {
                     </div>
                 </div>
                 <div className="mt-10 border-t border-emerald-200/15 pt-6 text-center text-sm text-emerald-100/70">
-                    © {new Date().getFullYear()} مشاعل المعرفة. جميع الحقوق محفوظة.
+                    © {currentYear || "2026"} مشاعل المعرفة. جميع الحقوق محفوظة.
                 </div>
             </div>
         </footer>
@@ -156,6 +154,11 @@ function FooterSection() {
 
 export default function CurriculaStudentsListPage() {
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [currentYear, setCurrentYear] = useState(null);
+
+    useEffect(() => {
+        setCurrentYear(new Date().getFullYear());
+    }, []);
 
     const handleSave = (studentEmail, progress) => {
         localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(progress));
@@ -241,7 +244,7 @@ export default function CurriculaStudentsListPage() {
             )}
 
             <div className="mt-auto w-full relative z-20">
-                <FooterSection />
+                <FooterSection currentYear={currentYear} />
             </div>
         </main>
     );
