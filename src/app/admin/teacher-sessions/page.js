@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 const INITIAL_TEACHERS = [
   {
@@ -9,8 +8,8 @@ const INITIAL_TEACHERS = [
     name: "أحمد عبد الله",
     department: "ركن القرآن الكريم",
     completedSessions: 45,
-    canceledSessions: 2,
     ratePerSession: 50,
+    amountReceived: 0,
     status: "نشط",
   },
   {
@@ -18,8 +17,8 @@ const INITIAL_TEACHERS = [
     name: "فاطمة محمد",
     department: "العربية لغير الناطقين",
     completedSessions: 32,
-    canceledSessions: 0,
     ratePerSession: 60,
+    amountReceived: 0,
     status: "نشط",
   },
   {
@@ -27,24 +26,51 @@ const INITIAL_TEACHERS = [
     name: "محمود حسن",
     department: "المناهج الدراسية",
     completedSessions: 28,
-    canceledSessions: 1,
     ratePerSession: 40,
+    amountReceived: 0,
     status: "إجازة",
   },
 ];
 
 export default function AdminTeacherSessionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [teachers, setTeachers] = useState(INITIAL_TEACHERS);
+  const [teachers, setTeachers] = useState([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    // Load data from localStorage or use initial
+    const saved = localStorage.getItem("admin_teachers_accounts");
+    let baseTeachers = saved ? JSON.parse(saved) : INITIAL_TEACHERS;
+
+    // Sync with teacher 1 sessions from other session tracking
     const teacher1Extra = parseInt(localStorage.getItem("teacher_1_sessions") || "45");
-    setTeachers(prev => prev.map(t => t.id === 1 ? { ...t, completedSessions: teacher1Extra } : t));
+    
+    const syncedTeachers = baseTeachers.map(t => 
+      t.id === 1 ? { ...t, completedSessions: teacher1Extra } : t
+    );
+
+    setTeachers(syncedTeachers);
   }, []);
+
+  // Save changes to localStorage whenever teachers state changes
+  useEffect(() => {
+    if (mounted && teachers.length > 0) {
+      localStorage.setItem("admin_teachers_accounts", JSON.stringify(teachers));
+    }
+  }, [teachers, mounted]);
+
+  const handleUpdate = (id, field, value) => {
+    setTeachers(prev => prev.map(t => 
+      t.id === id ? { ...t, [field]: parseFloat(value) || 0 } : t
+    ));
+  };
 
   const filteredTeachers = teachers.filter((t) =>
     t.name.includes(searchTerm) || t.department.includes(searchTerm)
   );
+
+  if (!mounted) return null;
 
   return (
     <main className="site-container py-10" dir="rtl">
@@ -79,8 +105,9 @@ export default function AdminTeacherSessionsPage() {
                 <th className="whitespace-nowrap px-6 py-4 font-bold">اسم المعلم</th>
                 <th className="whitespace-nowrap px-6 py-4 font-bold">القسم</th>
                 <th className="whitespace-nowrap px-6 py-4 font-bold">الحصص المكتملة</th>
+                <th className="whitespace-nowrap px-6 py-4 font-bold">سعر الحصة</th>
                 <th className="whitespace-nowrap px-6 py-4 font-bold">المبلغ المستحق</th>
-                <th className="whitespace-nowrap px-6 py-4 font-bold text-center">الإجراءات</th>
+                <th className="whitespace-nowrap px-6 py-4 font-bold text-center">المبلغ المستلم</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-50">
@@ -113,16 +140,36 @@ export default function AdminTeacherSessionsPage() {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <input 
+                            type="number"
+                            value={teacher.ratePerSession}
+                            onChange={(e) => handleUpdate(teacher.id, 'ratePerSession', e.target.value)}
+                            className="w-20 rounded-lg border border-emerald-100 px-2 py-1 text-center font-bold text-emerald-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] font-bold text-slate-400">ج.م</span>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
                       <span className="font-bold text-emerald-600">{totalDue} ج.م</span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-center">
-                      <button className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 hover:text-emerald-800">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        التفاصيل
-                      </button>
+                       <div className="flex items-center justify-center gap-1">
+                            <input 
+                                type="number"
+                                value={teacher.amountReceived}
+                                onChange={(e) => handleUpdate(teacher.id, 'amountReceived', e.target.value)}
+                                className="w-24 rounded-lg border border-emerald-100 px-2 py-1 text-center font-bold text-slate-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                placeholder="0"
+                            />
+                            <span className="text-[10px] font-bold text-slate-400">ج.م</span>
+                        </div>
+                        {teacher.amountReceived >= totalDue && totalDue > 0 && (
+                            <span className="block mt-1 text-[10px] font-bold text-green-600">تم السداد بالكامل</span>
+                        )}
+                        {teacher.amountReceived > 0 && teacher.amountReceived < totalDue && (
+                            <span className="block mt-1 text-[10px] font-bold text-amber-600">سداد جزئي (باقي {totalDue - teacher.amountReceived})</span>
+                        )}
                     </td>
                   </tr>
                 );
