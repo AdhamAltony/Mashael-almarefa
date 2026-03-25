@@ -1,6 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import StudentNavbar from "../student-navbar";
+
+const NAV_LINKS = [
+    { label: "لوحة الطالب", href: "/student/dashboard" },
+    { label: "الملف الشخصي", href: "/student/profile" },
+    { label: "معلميني", href: "/student/quran-teachers" }, // Default, but handled dynamically in layout usually
+];
 
 function StatCard({ label, value, hint }) {
   return (
@@ -107,7 +114,9 @@ export default function StudentProfilePage() {
       <div className="absolute left-0 top-0 h-[380px] w-[380px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-emerald-200/45 blur-3xl" />
       <div className="absolute bottom-0 right-0 h-[460px] w-[460px] translate-x-1/4 translate-y-1/4 rounded-full bg-emerald-100/65 blur-3xl" />
 
-      <div className="site-container relative z-10">
+      <StudentNavbar sectionTitle="بوابة الطالب" links={NAV_LINKS} />
+
+      <div className="site-container relative z-10 pt-20">
         <section className="modern-card mb-8 overflow-hidden rounded-3xl border border-white/60 p-6 shadow-2xl shadow-emerald-900/10 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4 sm:gap-5">

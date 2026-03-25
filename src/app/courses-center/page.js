@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import { useState, useCallback, useEffect } from "react";
+import AdminNavbar from "../admin/admin-navbar";
+
+const ADMIN_LINKS = [
+  { label: "لوحة الإدارة", href: "/admin/dashboard" },
+  { label: "لوحة التحكم", href: "/admin" },
+  { label: "تقارير المعلمين", href: "/admin/teacher-sessions" },
+  { label: "مركز الدورات", href: "/courses-center" },
+];
 
 // ─── Default Static Data ──────────────────────────────────────────────────────
 
@@ -254,48 +262,7 @@ function SuccessMessage({ onReset }) {
   );
 }
 
-// ─── Navbar ───────────────────────────────────────────────────────────────────
-
-function Navbar() {
-  return (
-    <nav className="fixed right-0 left-0 top-0 z-50">
-      <div className="nav-surface shadow-[0_12px_36px_-16px_rgba(4,16,31,0.85)]">
-        <div className="site-container">
-          <div className="flex min-h-[4.5rem] items-center justify-between gap-4">
-            {/* Brand */}
-            <Link href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-              <div className="icon-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-xl font-bold text-white shadow-lg shadow-emerald-500/30 sm:h-12 sm:w-12">
-                م
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate whitespace-nowrap text-base font-bold text-white sm:text-lg">
-                  مشاعل المعرفة
-                </span>
-                <span className="hidden text-xs text-emerald-200/80 sm:block">
-                  منصة تعليمية متكاملة
-                </span>
-              </div>
-            </Link>
-
-
-
-            {/* Home CTA */}
-            <Link
-              href="/"
-              className="glow-button inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-l from-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:from-emerald-400 hover:to-emerald-500 sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
-            >
-              <svg aria-hidden="true" className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-              <span className="hidden sm:inline">العودة إلى الصفحة الرئيسة</span>
-              <span className="sm:hidden">الرئيسة</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
+// ─── Navbar removed in favor of AdminNavbar ───────────────────────────────────
 
 // ─── FooterSection ─────────────────────────────────────────────────────────────
 
@@ -408,7 +375,7 @@ export default function CoursesCenterPage() {
         <div className="absolute bottom-0 left-0 h-[600px] w-[600px] translate-x-1/3 translate-y-1/4 rounded-full bg-emerald-50/80 blur-3xl pointer-events-none" />
       </div>
 
-      <Navbar />
+      <AdminNavbar sectionTitle="مركز الدورات" links={ADMIN_LINKS} />
 
       <section className="relative z-10 flex flex-1 flex-col justify-center px-4 pt-28 pb-16 sm:px-6 sm:pt-32 sm:pb-24">
         <div className="mx-auto w-full max-w-3xl">
