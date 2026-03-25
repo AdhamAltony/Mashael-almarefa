@@ -91,7 +91,6 @@ function ProgressModal({ student, onClose, onSave }) {
                         </div>
                     </div>
 
-                    {/* Achievements and Notes */}
                     <div className="mt-8 space-y-4">
                         <h3 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2">الإنجازات والملاحظات</h3>
                         <div>
