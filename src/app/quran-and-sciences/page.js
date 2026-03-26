@@ -131,7 +131,7 @@ function AttendanceOption({ value, current, onChange }) {
 
 // ─── Session Form ─────────────────────────────────────────────────────────────
 
-function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
+function SessionForm({ formData, errors, isSubmitting, students, onChange, onSubmit }) {
   const border = (key) => (errors[key] ? BORDER_ERR : BORDER_OK);
   const isAbsent = formData.attendance === "غائب";
 
@@ -154,7 +154,7 @@ function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
               -- اختر من القائمة --
             </option>
             {students.map((s) => (
-              <option key={s.email} value={s.name} className="bg-white text-emerald-950">
+              <option key={s.email} value={s.email} className="bg-white text-emerald-950">
                 {s.name}
               </option>
             ))}
@@ -430,6 +430,36 @@ export default function QuranAndSciencesSessionPage() {
       setIsSubmitting(true);
       // Simulated network request
       setTimeout(() => {
+        const studentEmail = formData.student;
+        const savedProgress = localStorage.getItem(`progress_${studentEmail}`);
+        let progress = savedProgress ? JSON.parse(savedProgress) : {
+          attendance: "95", rating: "8.5", hours: "20", nextLesson: "السبت القادم 4م",
+          reading: "80", writing: "70", listening: "90", conversation: "85",
+          achievements: "", notes: ""
+        };
+
+        if (formData.attendance === "حاضر") {
+          const newHours = (parseFloat(progress.hours) || 0) + (parseInt(formData.minutes) / 60);
+          const newRating = ((parseFloat(progress.rating) || 0) + parseFloat(formData.rating)) / 2;
+          progress.hours = newHours.toFixed(1);
+          progress.rating = newRating.toFixed(1);
+        }
+
+        localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(progress));
+
+        const savedSessions = localStorage.getItem(`sessions_${studentEmail}`);
+        const sessions = savedSessions ? JSON.parse(savedSessions) : [];
+        sessions.unshift({
+          title: formData.topic,
+          date: formData.date,
+          status: formData.attendance,
+          rating: formData.rating,
+          hours: (parseInt(formData.minutes) || 0) / 60,
+          notes: formData.notes,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(sessions));
+
         setIsSubmitting(false);
         setIsSuccess(true);
         setFormData(EMPTY_FORM);
@@ -488,6 +518,7 @@ export default function QuranAndSciencesSessionPage() {
                 formData={formData}
                 errors={errors}
                 isSubmitting={isSubmitting}
+                students={students}
                 onChange={handleChange}
                 onSubmit={handleSubmit}
               />

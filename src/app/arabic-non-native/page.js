@@ -131,7 +131,7 @@ function AttendanceOption({ value, current, onChange }) {
 
 // ─── Session Form ─────────────────────────────────────────────────────────────
 
-function SessionForm({ formData, errors, isSubmitting, onChange, onSubmit }) {
+function SessionForm({ formData, errors, isSubmitting, students, onChange, onSubmit }) {
   const border = (key) => (errors[key] ? BORDER_ERR : BORDER_OK);
   const isAbsent = formData.attendance === "غائب";
 
@@ -519,6 +519,7 @@ export default function ArabicNonNativePage() {
                 formData={formData}
                 errors={errors}
                 isSubmitting={isSubmitting}
+                students={students}
                 onChange={handleChange}
                 onSubmit={handleSubmit}
               />
