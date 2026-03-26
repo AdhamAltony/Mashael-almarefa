@@ -80,14 +80,17 @@ export default function StudentProfilePage() {
 
         if (localData) {
             const parsedLocal = JSON.parse(localData);
+            let teacherImage = "";
+            if (parsedLocal.assignedTeacherEmail) {
+                const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
+                if (tProfile) {
+                    teacherImage = JSON.parse(tProfile).image || "";
+                }
+            }
             setStudent({
                 ...initialFromSession,
                 ...parsedLocal,
-                // Prioritize local state but fallback to initial signup session data if local field is missing or default
-                country: (parsedLocal.country && parsedLocal.country !== "غير محدد") ? parsedLocal.country : initialFromSession.country,
-                age: (parsedLocal.age && parsedLocal.age !== "") ? parsedLocal.age : initialFromSession.age,
-                guardian: (parsedLocal.guardian && parsedLocal.guardian !== "غير محدد") ? parsedLocal.guardian : initialFromSession.guardian,
-                phone: (parsedLocal.phone && parsedLocal.phone !== "غير محدد") ? parsedLocal.phone : initialFromSession.phone
+                assignedTeacherImage: teacherImage
             });
         } else {
             setStudent(initialFromSession);
@@ -385,8 +388,12 @@ export default function StudentProfilePage() {
             <div className="mt-10 pt-6 border-t border-emerald-50">
                 <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلم المسؤول</p>
                 <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white">
-                        {student.assignedTeacher?.charAt(0) || "؟"}
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white overflow-hidden">
+                        {student.assignedTeacherImage ? (
+                            <img src={student.assignedTeacherImage} alt={student.assignedTeacher} className="h-full w-full object-cover" />
+                        ) : (
+                            student.assignedTeacher?.charAt(0) || "؟"
+                        )}
                     </div>
                     <div>
                         <p className="text-sm font-black text-emerald-950">{student.assignedTeacher || "لم يتم الاشتراك"}</p>

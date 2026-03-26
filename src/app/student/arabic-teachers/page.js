@@ -30,6 +30,7 @@ export default function ArabicTeachersPage() {
                         return {
                             id: u.id,
                             name: u.name,
+                            email: u.email,
                             specialization: profile.specialization || "لغة عربية",
                             available: profile.available || "متاح للتواصل",
                             phone: u.phone,
@@ -49,11 +50,14 @@ export default function ArabicTeachersPage() {
         }
     }, [course]);
 
-    const handleSubscribe = (teacherName) => {
+    const handleSubscribe = (teacherName, teacherEmail) => {
         if (!student) return;
         const profile = JSON.parse(localStorage.getItem(`student_profile_${student.email}`) || "{}");
-        const newTeacher = assignedTeacher === teacherName ? "" : teacherName;
-        const updated = { ...profile, assignedTeacher: newTeacher };
+        const isSubscribed = assignedTeacher === teacherName;
+        const newTeacher = isSubscribed ? "" : teacherName;
+        const newEmail = isSubscribed ? "" : teacherEmail;
+
+        const updated = { ...profile, assignedTeacher: newTeacher, assignedTeacherEmail: newEmail };
         localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
         setAssignedTeacher(newTeacher);
         
@@ -151,7 +155,7 @@ export default function ArabicTeachersPage() {
                                 {/* Card Footer (Action) */}
                                 <div className="p-6 pt-0 mt-auto flex flex-col gap-2">
                                     <button
-                                        onClick={() => handleSubscribe(teacher.name)}
+                                        onClick={() => handleSubscribe(teacher.name, teacher.email)}
                                         className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${
                                             assignedTeacher === teacher.name 
                                             ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100" 
