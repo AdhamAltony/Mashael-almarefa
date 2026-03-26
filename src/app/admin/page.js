@@ -12,16 +12,8 @@ const ALL_COURSES = [
     { id: 'c5', title: 'إعداد معلم اللغة العربية' },
 ];
 
-const initialUsers = [
-    { id: 1, name: "أحمد محمود", email: "student1@gmail.com", role: "student", course: "ركن القرآن" },
-    { id: 2, name: "منى علي", email: "student2@gmail.com", role: "student", course: "المناهج الدراسية" },
-    { id: 3, name: "عمر خالد", email: "student3@gmail.com", role: "student", course: "العربية لغير الناطقين" },
-    { id: 4, name: "الشيخ محمود زايد", email: "teacher@gmail.com", role: "teacher", course: "ركن القرآن" },
-    { id: 5, name: "أ. فاطمة سعيد", email: "fatima.s@mashael.com", role: "teacher", course: "المناهج الدراسية" },
-];
-
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState(initialUsers);
+    const [users, setUsers] = useState([]);
     const [activeTab, setActiveTab] = useState("student");
 
     // Edit State
@@ -38,6 +30,8 @@ export default function AdminUsersPage() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        const { getLocalUsers } = require("@/utils/local-db");
+        setUsers(getLocalUsers());
         setMounted(true);
     }, []);
 
@@ -49,6 +43,8 @@ export default function AdminUsersPage() {
 
     const confirmDelete = () => {
         if (userToDelete) {
+            const { deleteUser } = require("@/utils/local-db");
+            deleteUser(userToDelete);
             setUsers(users.filter((user) => user.id !== userToDelete));
             setUserToDelete(null);
         }
@@ -65,7 +61,10 @@ export default function AdminUsersPage() {
 
     const handleSaveEdit = (e) => {
         e.preventDefault();
-        setUsers(users.map((u) => (u.id === editingUser.id ? { ...u, ...editForm } : u)));
+        const { updateUser } = require("@/utils/local-db");
+        const updated = { ...editingUser, ...editForm };
+        updateUser(updated);
+        setUsers(users.map((u) => (u.id === editingUser.id ? updated : u)));
         setEditingUser(null);
     };
     const openAssignModal = (user) => {

@@ -92,19 +92,24 @@ export default function SignupPage() {
         }
 
         // Simulating success and storing data for the profile
+        const { saveUser } = require("@/utils/local-db");
+        
         const userData = {
             name: formData.name,
             email: formData.email,
+            password: formData.password,
             role: role,
             department: DEPARTMENTS.find(d => d.id === formData.department)?.name || "",
             subjects: formData.selectedSubjects.map(id => CURRICULA_SUBJECTS.find(s => s.id === id)?.name).filter(Boolean),
-            course: role === "student" ? "بوابة الطالب" : "لوحة المعلم"
+            course: DEPARTMENTS.find(d => d.id === formData.department)?.name || (role === "student" ? "بوابة الطالب" : "لوحة المعلم")
         };
-        const base64 = btoa(encodeURIComponent(JSON.stringify(userData)));
+
+        const savedUser = saveUser(userData);
+        const base64 = btoa(encodeURIComponent(JSON.stringify(savedUser)));
         document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
 
         alert("تم إنشاء الحساب بنجاح! سيتم توجيهك إلى ملفك الشخصي.");
-        window.location.href = role === "student" ? "/student/profile" : "/teacher/profile";
+        window.location.href = savedUser.redirect;
     };
 
     return (
