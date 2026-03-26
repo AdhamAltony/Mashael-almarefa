@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 const NAV_LINKS = [
     { label: "طلاب القسم", href: "/teacher/students" },
@@ -23,16 +24,31 @@ function ProgressModal({ student, onClose, onSave }) {
         achievements: "",
         notes: ""
     });
+    const [sessions, setSessions] = useState([]);
+    const [newSession, setNewSession] = useState({ date: "", time: "", meetLink: "" });
 
     useEffect(() => {
         const savedProgress = localStorage.getItem(`progress_${student.email}`);
-        if (savedProgress) {
-            setProgress(JSON.parse(savedProgress));
-        }
+        if (savedProgress) setProgress(JSON.parse(savedProgress));
+
+        const savedSessions = localStorage.getItem(`sessions_${student.email}`);
+        if (savedSessions) setSessions(JSON.parse(savedSessions));
     }, [student.email]);
+
+    const handleAddSession = () => {
+        if (!newSession.date || !newSession.time) return;
+        const updated = [...sessions, { ...newSession, id: Date.now(), title: student.course || "حصة جديدة" }];
+        setSessions(updated);
+        setNewSession({ date: "", time: "", meetLink: "" });
+    };
+
+    const removeSession = (id) => {
+        setSessions(prev => prev.filter(s => s.id !== id));
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        localStorage.setItem(`sessions_${student.email}`, JSON.stringify(sessions));
         onSave(student.email, progress);
     };
 
@@ -43,22 +59,43 @@ function ProgressModal({ student, onClose, onSave }) {
                     <h2 className="text-2xl font-black text-white">تحديث تقدم الطالب</h2>
                     <p className="mt-1 text-emerald-100 font-medium">{student.name}</p>
                 </div>
-                
+
                 <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto p-8 text-right" dir="rtl">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <h3 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2">الإحصائيات العامة</h3>
+                            <h3 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2">موعد الحصص القادمة</h3>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">نسبة الحضور (%)</label>
-                                <input type="number" value={progress.attendance} onChange={(e) => setProgress({...progress, attendance: e.target.value})} className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500" />
+                                <input type="text" value={progress.nextLesson} onChange={(e) => setProgress({ ...progress, nextLesson: e.target.value })} placeholder="اكتب موعد الحصة القادمة هنا..." className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500" />
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">متوسط التقييم (من 10)</label>
-                                <input type="text" value={progress.rating} onChange={(e) => setProgress({...progress, rating: e.target.value})} className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500" />
+
+                            <h3 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2 mt-6">جدولة الحصص القادمة</h3>
+
+                            <div className="space-y-2">
+                                {sessions.map(s => (
+                                    <div key={s.id} className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-xs">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-emerald-900">{s.title}</span>
+                                            <span className="text-slate-500">{s.date} - {s.time}</span>
+                                        </div>
+                                        <button type="button" onClick={() => removeSession(s.id)} className="text-red-500 hover:text-red-700">
+                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">موعد الحصة القادمة</label>
-                                <input type="text" value={progress.nextLesson} onChange={(e) => setProgress({...progress, nextLesson: e.target.value})} className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500" />
+
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                <input type="date" value={newSession.date} onChange={(e) => setNewSession({ ...newSession, date: e.target.value })} className="rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2 text-xs outline-none focus:border-emerald-500" />
+                                <input type="time" value={newSession.time} onChange={(e) => setNewSession({ ...newSession, time: e.target.value })} className="rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2 text-xs outline-none focus:border-emerald-500" />
+                                <input type="text" placeholder="رابط الحصة (Meets...)" value={newSession.meetLink} onChange={(e) => setNewSession({ ...newSession, meetLink: e.target.value })} className="col-span-2 rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2 text-xs outline-none focus:border-emerald-500" />
+                                <button type="button" onClick={handleAddSession} className="col-span-2 rounded-xl bg-emerald-100 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-200">
+                                    + إضافة حصة قادمة
+                                </button>
+                            </div>
+
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-slate-500 mb-1">أبرز الملاحظات والإنجازات</label>
+                                <textarea value={progress.achievements} onChange={(e) => setProgress({ ...progress, achievements: e.target.value })} rows={3} placeholder="اكتب ملاحظات وإنجازات الطالب هنا..." className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500 resize-none" />
                             </div>
                         </div>
 
@@ -69,16 +106,33 @@ function ProgressModal({ student, onClose, onSave }) {
                                     <label className="block text-xs font-bold text-slate-500 mb-1">
                                         {skill === 'reading' ? 'القراءة' : skill === 'writing' ? 'الكتابة' : skill === 'listening' ? 'الاستماع' : 'المحادثة'}
                                     </label>
-                                    <input 
-                                        type="range" 
-                                        min="0" max="100" 
-                                        value={progress[skill]} 
-                                        onChange={(e) => setProgress({...progress, [skill]: e.target.value})} 
-                                        className="w-full h-2 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-                                    />
-                                    <span className="text-xs font-bold text-emerald-600 ml-2">{progress[skill]}%</span>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="range"
+                                            min="0" max="100"
+                                            value={progress[skill]}
+                                            onChange={(e) => setProgress({ ...progress, [skill]: e.target.value })}
+                                            className="h-2 flex-1 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                                        />
+                                        <span className="text-xs font-bold text-emerald-600 w-8">{progress[skill]}%</span>
+                                    </div>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 border-t border-emerald-50 pt-6">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">نسبة الحضور (%)</label>
+                            <input type="number" value={progress.attendance} onChange={(e) => setProgress({ ...progress, attendance: e.target.value })} className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 text-sm outline-none focus:border-emerald-500" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">التقييم العام (من 10)</label>
+                            <input type="text" value={progress.rating} onChange={(e) => setProgress({ ...progress, rating: e.target.value })} className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 text-sm outline-none focus:border-emerald-500" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">إجمالي الساعات</label>
+                            <input type="text" value={progress.hours} onChange={(e) => setProgress({ ...progress, hours: e.target.value })} className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 text-sm outline-none focus:border-emerald-500" />
                         </div>
                     </div>
 
@@ -97,12 +151,13 @@ export default function TeacherStudentsPage() {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [department, setDepartment] = useState("");
     const [loading, setLoading] = useState(true);
+    const [studentToDelete, setStudentToDelete] = useState(null);
     const router = useRouter();
 
     useEffect(() => {
         const cookies = document.cookie.split("; ");
         const sessionCookie = cookies.find(c => c.startsWith("session="));
-        
+
         if (!sessionCookie) {
             router.push("/auth/login");
             return;
@@ -112,8 +167,7 @@ export default function TeacherStudentsPage() {
             const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
             const decoded = decodeURIComponent(atob(base64));
             const sessionData = JSON.parse(decoded);
-            
-            // Detect department name for filtering
+
             let deptName = sessionData.department || "";
             if (!deptName && sessionData.course) {
                 if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
@@ -122,14 +176,24 @@ export default function TeacherStudentsPage() {
             }
             setDepartment(deptName);
 
-            // Filter students using the central database
             const { getLocalUsers } = require("@/utils/local-db");
             const allUsers = getLocalUsers();
-            const filtered = allUsers.filter(u => 
-                u.role === "student" && 
+            const filtered = allUsers.filter(u =>
+                u.role === "student" &&
                 (u.course === deptName || u.department === deptName)
             );
-            setStudents(filtered);
+
+            // Fetch images from student profiles
+            const studentsWithImages = filtered.map(s => {
+                const profile = localStorage.getItem(`student_profile_${s.email}`);
+                if (profile) {
+                    const parsed = JSON.parse(profile);
+                    return { ...s, image: parsed.image };
+                }
+                return s;
+            });
+
+            setStudents(studentsWithImages);
         } catch (e) {
             console.error("Session error", e);
         } finally {
@@ -141,6 +205,15 @@ export default function TeacherStudentsPage() {
         localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(progress));
         alert("تم حفظ بيانات التقدم بنجاح!");
         setSelectedStudent(null);
+    };
+
+    const confirmDelete = () => {
+        if (studentToDelete) {
+            const { deleteUser } = require("@/utils/local-db");
+            deleteUser(studentToDelete.id);
+            setStudents(prev => prev.filter(s => s.id !== studentToDelete.id));
+            setStudentToDelete(null);
+        }
     };
 
     if (loading) return <div className="p-10 text-center text-emerald-900 font-bold">جاري التحميل...</div>;
@@ -168,7 +241,7 @@ export default function TeacherStudentsPage() {
                                 <thead className="bg-emerald-50/80 text-emerald-900 border-b border-emerald-200/60">
                                     <tr>
                                         <th className="px-6 py-4 font-bold">#</th>
-                                        <th className="px-6 py-4 font-bold">اسم الطالب</th>
+                                        <th className="px-6 py-4 font-bold">بيانات الطالب</th>
                                         <th className="px-6 py-4 font-bold text-center">العمر</th>
                                         <th className="px-6 py-4 font-bold">المستوى / الصف</th>
                                         <th className="px-6 py-4 font-bold text-center">الإجراءات</th>
@@ -179,9 +252,18 @@ export default function TeacherStudentsPage() {
                                         <tr key={student.id} className="transition-colors hover:bg-emerald-50/40">
                                             <td className="px-6 py-4 text-slate-500">{idx + 1}</td>
                                             <td className="px-6 py-4 font-bold text-emerald-950">
-                                                <div className="flex flex-col">
-                                                    <span>{student.name}</span>
-                                                    <span className="text-[10px] text-slate-400 font-mono tracking-tighter">{student.id}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 flex-shrink-0 rounded-full border-2 border-emerald-100 bg-emerald-50 overflow-hidden flex items-center justify-center text-emerald-600">
+                                                        {student.image ? (
+                                                            <img src={student.image} alt={student.name} className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-xs">{student.name.charAt(0)}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span>{student.name}</span>
+                                                        <span className="text-[10px] text-slate-400 font-mono tracking-tighter">{student.id}</span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">{student.age} سنة</td>
@@ -189,19 +271,28 @@ export default function TeacherStudentsPage() {
                                                 <span className="inline-flex items-center rounded-md bg-emerald-100/40 px-2 py-1 text-xs font-bold text-emerald-700">{student.level || student.course}</span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <button 
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
                                                         onClick={() => setSelectedStudent(student)}
-                                                        className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-600/20"
+                                                        className="rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white transition-all hover:bg-emerald-500"
                                                     >
                                                         تحديث التقدم
                                                     </button>
-                                                    <Link 
+                                                    <Link
                                                         href={`/teacher/attendance?email=${student.email}`}
-                                                        className="rounded-lg border border-emerald-200 px-4 py-2 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-50 text-center"
+                                                        className="rounded-lg border border-emerald-200 px-3 py-2 text-[10px] font-bold text-emerald-700 hover:bg-emerald-50 text-center"
                                                     >
                                                         تسجيل حضور
                                                     </Link>
+                                                    <button
+                                                        onClick={() => setStudentToDelete(student)}
+                                                        className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
+                                                        title="حذف الطالب"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -219,11 +310,41 @@ export default function TeacherStudentsPage() {
             </section>
 
             {selectedStudent && (
-                <ProgressModal 
-                    student={selectedStudent} 
-                    onClose={() => setSelectedStudent(null)} 
-                    onSave={handleSave} 
+                <ProgressModal
+                    student={selectedStudent}
+                    onClose={() => setSelectedStudent(null)}
+                    onSave={handleSave}
                 />
+            )}
+
+            {/* Admin-Style Delete Confirmation */}
+            {studentToDelete && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-emerald-950/40 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="modern-card w-full max-w-sm rounded-[2rem] border border-white bg-white p-8 text-center shadow-2xl animate-in zoom-in-95">
+                        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border-[4px] border-red-500/20 bg-red-50 text-red-500">
+                            <span className="text-4xl font-black">!</span>
+                        </div>
+                        <h2 className="mb-2 text-2xl font-black text-slate-800">هل أنت متأكد؟</h2>
+                        <p className="mb-8 text-sm text-slate-500">
+                            لن تتمكن من التراجع عن عملية حذفك للطالب {studentToDelete.name} بأي شكل!
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 rounded-xl bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/30 transition hover:bg-red-600 hover:-translate-y-0.5"
+                            >
+                                حذف
+                            </button>
+                            <button
+                                onClick={() => setStudentToDelete(null)}
+                                className="flex-1 rounded-xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                            >
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </main>
     );

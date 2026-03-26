@@ -26,6 +26,7 @@ export default async function StudentLayout({ children }) {
   }
 
   const STUDENT_LINKS = sessionCookie ? [
+    { label: "لوحة الطالب", href: "/student/dashboard" },
     { label: "الملف الشخصي", href: "/student/profile" },
     { label: "معلميني", href: teacherLink },
   ] : [];

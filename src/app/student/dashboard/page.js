@@ -97,10 +97,38 @@ export default function StudentDashboardPage() {
 
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-          <h2 className="text-xl font-black text-emerald-950">سجل الحصص الأخيرة</h2>
+          <h2 className="text-xl font-black text-emerald-950">الحصص القادمة</h2>
+          <div className="mt-4 space-y-3">
+             {sessions.filter(s => !s.status).length > 0 ? (
+               sessions.filter(s => !s.status).map((item, idx) => (
+                 <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-4 transition-all hover:shadow-md">
+                    <div>
+                        <p className="font-bold text-emerald-900">{item.title}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{item.date} - {item.time}</p>
+                    </div>
+                    <a 
+                        href={item.meetLink || "https://meet.google.com/new"} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-[10px] font-bold text-white transition-all hover:bg-emerald-500 shadow-md shadow-emerald-600/20"
+                    >
+                        دخول الحصة
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </a>
+                 </div>
+               ))
+             ) : (
+                <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-8 text-center">
+                    <p className="text-sm font-bold text-emerald-950">لا توجد حصص قادمة مجدولة</p>
+                    <p className="mt-1 text-xs text-slate-500">سيظهر موعد الحصة هنا فور قيام المعلم بجدولتها.</p>
+                </div>
+             )}
+          </div>
+
+          <h2 className="text-xl font-black text-emerald-950 mt-8">سجل الحصص الأخيرة</h2>
           <ul className="mt-4 space-y-3">
-            {sessions.length > 0 ? (
-              sessions.slice(0, 5).map((item, idx) => (
+            {sessions.filter(s => s.status).length > 0 ? (
+              sessions.filter(s => s.status).slice(0, 5).map((item, idx) => (
                 <li key={idx} className="rounded-2xl border border-emerald-100 bg-white/70 p-4">
                   <p className="font-bold text-emerald-900">{item.title}</p>
                   <div className="flex justify-between items-center mt-1">

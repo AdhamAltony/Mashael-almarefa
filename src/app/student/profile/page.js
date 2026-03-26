@@ -1,13 +1,6 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import StudentNavbar from "../student-navbar";
-
-const NAV_LINKS = [
-    { label: "لوحة الطالب", href: "/student/dashboard" },
-    { label: "الملف الشخصي", href: "/student/profile" },
-    { label: "معلميني", href: "/student/quran-teachers" }, // Default, but handled dynamically in layout usually
-];
 
 function StatCard({ label, value, hint }) {
   return (
@@ -149,8 +142,6 @@ export default function StudentProfilePage() {
     >
       <div className="absolute left-0 top-0 h-[380px] w-[380px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-emerald-200/45 blur-3xl" />
       <div className="absolute bottom-0 right-0 h-[460px] w-[460px] translate-x-1/4 translate-y-1/4 rounded-full bg-emerald-100/65 blur-3xl" />
-
-      <StudentNavbar sectionTitle={student.course || "بوابة الطالب"} links={NAV_LINKS} />
 
       <div className="site-container relative z-10 pt-20">
         <section className="modern-card mb-8 overflow-hidden rounded-3xl border border-white/60 p-6 shadow-2xl shadow-emerald-900/10 sm:p-8">
@@ -434,16 +425,6 @@ export default function StudentProfilePage() {
                             <p className="text-sm text-slate-500 italic">لا توجد إنجازات مسجلة حالياً..</p>
                         </div>
                     )}
-                    
-                    <div className="mt-2 rounded-2xl border border-emerald-200/50 bg-emerald-500/5 p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                             <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                             <p className="text-xs font-bold text-emerald-900 uppercase">توصيات المعلم</p>
-                        </div>
-                        <p className="text-sm leading-relaxed text-slate-700 italic">
-                            {progressData.notes || "بانتظار تقييم المعلم للحصص الأخيرة."}
-                        </p>
-                    </div>
                 </div>
             </article>
         </section>
