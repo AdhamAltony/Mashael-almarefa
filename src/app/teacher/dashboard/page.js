@@ -42,18 +42,24 @@ export default function TeacherDashboardPage() {
             } catch (e) { console.error(e); }
         }
 
-        const deptStudents = allUsers.filter(u => u.role === "student" && u.course === session?.course);
+        const teacherEmail = session?.email;
+        const myStudents = allUsers.filter(u => {
+            if (u.role !== "student") return false;
+            const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
+            return profile.assignedTeacherEmail === teacherEmail;
+        });
+
         const teacherDoneCount = localStorage.getItem(`teacher_done_${session?.email}`) || "0";
 
         setStats([
             { label: "إجمالي الحصص", value: teacherDoneCount, key: "total_sessions" },
-            { label: "الطلاب النشطون", value: deptStudents.length.toString(), key: "active_students" },
+            { label: "الطلاب النشطون", value: myStudents.length.toString(), key: "active_students" },
             { label: "التقييم العام", value: "4.9/5", key: "rating" },
             { label: "القسم", value: session?.course || "عام", key: "department" },
         ]);
 
-        if (deptStudents.length > 0) {
-            const dynamicClasses = deptStudents.slice(0, 3).map((s, idx) => ({
+        if (myStudents.length > 0) {
+            const dynamicClasses = myStudents.slice(0, 3).map((s, idx) => ({
                 id: s.id || idx,
                 student: s.name,
                 course: s.course,

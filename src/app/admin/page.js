@@ -5,11 +5,14 @@ import { useState, useEffect } from "react";
 // Mock data
 // Mock data for courses
 const ALL_COURSES = [
-    { id: 'c1', title: 'النحو: تأسيس وتوظيف' },
-    { id: 'c2', title: 'الصرف' },
-    { id: 'c3', title: 'العَروض' },
-    { id: 'c4', title: 'البلاغة' },
-    { id: 'c5', title: 'إعداد معلم اللغة العربية' },
+    { id: 'arabic', title: 'اللغة العربية' },
+    { id: 'english', title: 'اللغة الإنجليزية' },
+    { id: 'math', title: 'الرياضيات' },
+    { id: 'science', title: 'العلوم' },
+    { id: 'social', title: 'الدراسات الاجتماعية' },
+    { id: 'french', title: 'اللغة الفرنسية' },
+    { id: 'german', title: 'اللغة الألمانية' },
+    { id: 'islamic', title: 'التربية الإسلامية' },
 ];
 
 export default function AdminUsersPage() {
@@ -56,15 +59,45 @@ export default function AdminUsersPage() {
 
     const openEditModal = (user) => {
         setEditingUser(user);
-        setEditForm({ name: user.name, email: user.email, course: user.course });
+        let rating = "5.0";
+        if (user.role === "teacher") {
+            const profile = JSON.parse(localStorage.getItem(`teacher_profile_${user.email}`) || "{}");
+            rating = profile.rating || "5.0";
+        }
+        setEditForm({ name: user.name, email: user.email, course: user.course, rating });
     };
 
     const handleSaveEdit = (e) => {
         e.preventDefault();
         const { updateUser, getLocalUsers } = require("@/utils/local-db");
         updateUser({ ...editingUser, ...editForm });
+        
+        if (editingUser.role === "teacher") {
+            const profileKey = `teacher_profile_${editingUser.email}`;
+            const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+            profile.rating = editForm.rating;
+            localStorage.setItem(profileKey, JSON.stringify(profile));
+        }
+
         setUsers(getLocalUsers());
         setEditingUser(null);
+    };
+
+    const toggleTeacherStatus = (user) => {
+        const profileKey = `teacher_profile_${user.email}`;
+        const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+        const currentStatus = profile.available || "نشط";
+        const newStatus = currentStatus === "إجازة" ? "نشط" : "إجازة";
+        
+        profile.available = newStatus;
+        localStorage.setItem(profileKey, JSON.stringify(profile));
+        
+        // Refresh users list to show update
+        const { getLocalUsers } = require("@/utils/local-db");
+        setUsers(getLocalUsers());
+        
+        setToast({ message: `تم تغيير حالة ${user.name} إلى ${newStatus}`, type: "success" });
+        setTimeout(() => setToast(null), 3000);
     };
     const openAssignModal = (user) => {
         setAssigningToUser(user);
@@ -128,61 +161,105 @@ export default function AdminUsersPage() {
                     <table className="w-full text-right text-sm">
                         <thead>
                             <tr className="border-b border-emerald-100 text-emerald-900">
-                                <th className="py-4 pl-4 font-bold">الاسم</th>
-                                <th className="py-4 pl-4 font-bold">البريد الإلكتروني</th>
+                                <th className="py-4 pl-4 font-bold">بيانات العضو</th>
+                                <th className="py-4 pl-4 font-bold">رقم العضو</th>
                                 <th className="py-4 pl-4 font-bold">القسم / المسار</th>
-                                {activeTab === "student" && <th className="py-4 pl-4 font-bold">الدورات</th>}
+                                {activeTab === "student" ? (
+                                    <th className="py-4 pl-4 font-bold">الدورات</th>
+                                ) : (
+                                    <th className="py-4 pl-4 font-bold">الحالة</th>
+                                )}
                                 <th className="py-4 font-bold w-32">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50/50">
                             {filteredUsers.length > 0 ? (
-                                filteredUsers.map((user) => (
-                                    <tr key={user.id} className="group transition-colors hover:bg-emerald-50/30">
-                                        <td className="py-4 pl-4 font-bold text-emerald-950">{user.name}</td>
-                                        <td className="py-4 pl-4 text-slate-600">{user.email}</td>
-                                        <td className="py-4 pl-4">
-                                            <span className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                                                {user.course}
-                                            </span>
-                                        </td>
-                                        {activeTab === "student" && (
+                                filteredUsers.map((user) => {
+                                    const profileKey = user.role === "teacher" 
+                                        ? `teacher_profile_${user.email}` 
+                                        : `student_profile_${user.email}`;
+                                    const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+                                    const userImage = profile.image || "";
+                                    const status = profile.available || "متاح";
+
+                                    return (
+                                        <tr key={user.id} className="group transition-colors hover:bg-emerald-50/30">
                                             <td className="py-4 pl-4">
-                                                <button
-                                                    onClick={() => openAssignModal(user)}
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-50"
-                                                >
-                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                    </svg>
-                                                    {mounted && localStorage.getItem(`assigned_courses_${user.email}`) ? "تعديل الدورات" : "إتاحة دورات"}
-                                                </button>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-emerald-100 border border-emerald-200">
+                                                        {userImage ? (
+                                                            <img src={userImage} alt={user.name} className="h-full w-full object-cover" />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center font-bold text-emerald-600">
+                                                                {user.name.charAt(0)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-emerald-950">{user.name}</span>
+                                                        <span className="text-[10px] text-slate-500">{user.email}</span>
+                                                    </div>
+                                                </div>
                                             </td>
-                                        )}
-                                        <td className="py-4">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => openEditModal(user)}
-                                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
-                                                    title="تعديل"
-                                                >
-                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(user.id)}
-                                                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
-                                                    title="حذف"
-                                                >
-                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            <td className="py-4 pl-4">
+                                                <span className="text-xs font-mono font-bold text-emerald-800">#{user.id}</span>
+                                            </td>
+                                            <td className="py-4 pl-4">
+                                                <span className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                                                    {user.course}
+                                                </span>
+                                            </td>
+                                            {activeTab === "student" ? (
+                                                <td className="py-4 pl-4">
+                                                    <button
+                                                        onClick={() => openAssignModal(user)}
+                                                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-50"
+                                                    >
+                                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                        </svg>
+                                                        {mounted && localStorage.getItem(`assigned_courses_${user.email}`) ? "تعديل الدورات" : "إتاحة دورات"}
+                                                    </button>
+                                                </td>
+                                            ) : (
+                                                <td className="py-4 pl-4">
+                                                    <button 
+                                                        onClick={() => toggleTeacherStatus(user)}
+                                                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${
+                                                        status === "إجازة" || status.includes("غير متاح")
+                                                        ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                                        : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                                    }`}>
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                                                        {status}
+                                                    </button>
+                                                </td>
+                                            )}
+                                            <td className="py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => openEditModal(user)}
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
+                                                        title="تعديل"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteClick(user.id)}
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
+                                                        title="حذف"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan="4" className="py-8 text-center text-slate-500">
@@ -223,19 +300,44 @@ export default function AdminUsersPage() {
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-bold text-emerald-900">القسم / المسار</label>
-                                <input
-                                    type="text"
+                                <select
                                     required
                                     value={editForm.course}
                                     onChange={(e) => setEditForm({ ...editForm, course: e.target.value })}
-                                    className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
-                                />
-                            </div>
-
+                                    className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 appearance-none"
+                                >
+                                    <option value="ركن القرآن الكريم">ركن القرآن الكريم</option>
+                                    <option value="اللغة العربية لغير الناطقين">اللغة العربية لغير الناطقين</option>
+                                    <option value="المناهج الدراسية">المناهج الدراسية</option>
+                                </select>
+                            </div>                            {editingUser.role === "teacher" && (
+                                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100/50">
+                                    <label className="mb-2 block text-xs font-bold text-amber-800 uppercase tracking-wider">تقييم المعلم</label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col flex-1">
+                                            <input 
+                                                type="range" 
+                                                min="1" max="5" step="0.1"
+                                                value={editForm.rating}
+                                                onChange={(e) => setEditForm({ ...editForm, rating: e.target.value })}
+                                                className="w-full accent-amber-500 cursor-pointer"
+                                            />
+                                            <div className="flex justify-between mt-1 text-[10px] font-bold text-amber-600/60">
+                                                <span>1.0</span>
+                                                <span>5.0</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-14 w-14 shrink-0 rounded-2xl bg-white border-2 border-amber-200 flex flex-col items-center justify-center font-black text-amber-600 shadow-sm transition-transform hover:scale-110">
+                                            <span className="text-sm">{editForm.rating}</span>
+                                            <span className="text-xs leading-none">⭐</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div className="mt-6 flex gap-3 pt-2">
                                 <button
                                     type="submit"
-                                    className="glow-button flex-1 rounded-xl bg-gradient-to-l from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white transition-all hover:from-emerald-400 hover:to-emerald-500"
+                                    className="glow-button flex-1 rounded-xl bg-gradient-to-l from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white transition-all hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/20"
                                 >
                                     حفظ التعديلات
                                 </button>

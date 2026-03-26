@@ -176,12 +176,14 @@ export default function TeacherStudentsPage() {
             }
             setDepartment(deptName);
 
+            const teacherEmail = sessionData.email;
             const { getLocalUsers } = require("@/utils/local-db");
             const allUsers = getLocalUsers();
-            const filtered = allUsers.filter(u =>
-                u.role === "student" &&
-                (u.course === deptName || u.department === deptName)
-            );
+            const filtered = allUsers.filter(u => {
+                if (u.role !== "student") return false;
+                const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
+                return profile.assignedTeacherEmail === teacherEmail;
+            });
 
             // Fetch images from student profiles
             const studentsWithImages = filtered.map(s => {
@@ -209,10 +211,30 @@ export default function TeacherStudentsPage() {
 
     const confirmDelete = () => {
         if (studentToDelete) {
-            const { deleteUser } = require("@/utils/local-db");
-            deleteUser(studentToDelete.id);
+            // Instead of deleting the user, we just unsubscribe them from this teacher
+            const profileKey = `student_profile_${studentToDelete.email}`;
+            const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+            
+            const updatedProfile = { 
+                ...profile, 
+                assignedTeacher: "", 
+                assignedTeacherEmail: "" 
+            };
+            
+            localStorage.setItem(profileKey, JSON.stringify(updatedProfile));
+            
+            // Re-sync UI
             setStudents(prev => prev.filter(s => s.id !== studentToDelete.id));
             setStudentToDelete(null);
+            
+            Swal.fire({
+                title: "تم الفصل!",
+                text: "تم إزالة الطالب من قائمتك. يمكنه الاشتراك معك مرة أخرى في أي وقت.",
+                icon: "success",
+                confirmButtonText: "موافق",
+                confirmButtonColor: "#10b981",
+                timer: 2000
+            });
         }
     };
 
