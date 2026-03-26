@@ -13,15 +13,16 @@ export default async function StudentLayout({ children }) {
       const uriEncodedStr = Buffer.from(base64Str, "base64").toString("utf8");
       const jsonStr = decodeURIComponent(uriEncodedStr);
       sessionData = JSON.parse(jsonStr);
-      const course = sessionData.course;
-
-      if (course === "العربية لغير الناطقين") {
+      const course = sessionData.course || sessionData.department;
+      if (course === "اللغة العربية لغير الناطقين") {
         teacherLink = "/student/arabic-teachers";
       } else if (course === "المناهج الدراسية") {
         teacherLink = "/student/curricula-teachers";
+      } else {
+        teacherLink = "/student/quran-teachers";
       }
     } catch {
-      // fallback to quran
+      teacherLink = "/student/quran-teachers";
     }
   }
 

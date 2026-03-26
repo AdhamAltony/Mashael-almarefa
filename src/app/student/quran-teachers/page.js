@@ -4,51 +4,13 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import TeacherBio from "@/components/teacher-bio";
 
-const TEACHERS_DATA = [
-    {
-        id: "QUR-T-001",
-        name: "أ. محمد عبد الله",
-        specialization: "حفظ ومراجعة تجويد",
-        available: "الإثنين، الأربعاء (4-8 م)",
-        phone: "201210212176",
-        rating: "4.9",
-        image: "",
-        bio: "مجاز بالقراءات العشر، خبرة أكثر من 10 سنوات في تحفيظ القرآن الكريم للكبار والصغار بالطرق الحديثة. متخصص في تعليم التجويد العملي والنظري."
-    },
-    {
-        id: "QUR-T-002",
-        name: "أ. محمود حسن",
-        specialization: "تأسيس نور البيان",
-        available: "السبت، الثلاثاء (2-6 م)",
-        phone: "201210212176",
-        rating: "4.8",
-        image: "",
-        bio: "متخصص في تأسيس الأطفال على القراءة الصحيحة بالقرآن ومخارج الحروف الدقيقة بأسلوب محبب ومبسط. خبير في منهج نور البيان وفتح الرحمن."
-    },
-    {
-        id: "QUR-T-003",
-        name: "ق. عائشة عبد الرحمن",
-        specialization: "حفظ كامل وتثبيت للنساء",
-        available: "الأحد، الخميس (9 ص - 1 م)",
-        phone: "201210212176",
-        rating: "5.0",
-        image: "",
-        bio: "حافظة متقنة ومعلمة معتمدة، متخصصة في جلسات التثبيت والمراجعة المكثفة للأخوات برواية حفص عن عاصم. كما أقدم دورات في شرح الجزرية والتحفة."
-    },
-    {
-        id: "QUR-T-004",
-        name: "أ. إبراهيم يوسف",
-        specialization: "القراءات العشر",
-        available: "الجمعة (الصباح)",
-        phone: "201210212176",
-        rating: "4.7",
-        image: "",
-        bio: "أستاذ متخصص في إقراء القرآن بالقراءات العشر المتواترة، وتصحيح التلاوة وتدريس متون التجويد. خبرة طويلة في تأهيل الطلاب للحصول على الإجازة."
-    },
-];
+
 
 export default function QuranTeachersPage() {
     const [course, setCourse] = useState("البرنامج العام");
+    const [student, setStudent] = useState(null);
+    const [assignedTeacher, setAssignedTeacher] = useState("");
+    const [teachers, setTeachers] = useState([]);
 
     useEffect(() => {
         const cookies = document.cookie.split("; ");
@@ -58,10 +20,55 @@ export default function QuranTeachersPage() {
                 const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
                 const decoded = decodeURIComponent(atob(base64));
                 const data = JSON.parse(decoded);
+                setStudent(data);
                 if (data.course) setCourse(data.course);
+
+                // Fetch real teachers from "app_users"
+                const allUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
+                const quranTeachers = allUsers
+                    .filter(u => u.role === "teacher" && (u.department === "quran" || u.department === "ركن القرآن الكريم"))
+                    .map(u => {
+                        const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
+                        return {
+                            id: u.id,
+                            name: u.name,
+                            specialization: profile.specialization || "تحفيظ وتجويد",
+                            available: profile.available || "متاح للتواصل",
+                            phone: u.phone,
+                            rating: profile.rating || "5.0",
+                            image: profile.image || "",
+                            bio: profile.bio || `معلم متخصص في ${course}، يمتلك مهارات عالية في التواصل والتدريس بأساليب مبتكرة.`
+                        };
+                    });
+                setTeachers(quranTeachers);
+
+                const profile = localStorage.getItem(`student_profile_${data.email}`);
+                if (profile) {
+                    const parsed = JSON.parse(profile);
+                    setAssignedTeacher(parsed.assignedTeacher || "");
+                }
             } catch { }
         }
-    }, []);
+    }, [course]);
+
+    const handleSubscribe = (teacherName) => {
+        if (!student) return;
+        const profile = JSON.parse(localStorage.getItem(`student_profile_${student.email}`) || "{}");
+        const newTeacher = assignedTeacher === teacherName ? "" : teacherName;
+        const updated = { ...profile, assignedTeacher: newTeacher };
+        localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
+        setAssignedTeacher(newTeacher);
+        
+        const S = require("sweetalert2");
+        S.fire({
+            title: newTeacher ? "تم الاشتراك بنجاح!" : "تم إلغاء الاشتراك",
+            text: newTeacher ? `أنت الآن مشترك مع ${teacherName}` : "يمكنك الاشتراك مع معلم آخر في أي وقت",
+            icon: "success",
+            confirmButtonText: "حسناً",
+            confirmButtonColor: "#059669",
+            timer: 2000
+        });
+    };
 
     return (
         <section className="relative z-10 flex flex-1 flex-col justify-center px-4 pb-16 sm:px-6 sm:pb-24">
@@ -80,13 +87,14 @@ export default function QuranTeachersPage() {
                 </header>
 
                 {/* Teachers Cards Grid */}
-                {TEACHERS_DATA.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 modern-card rounded-[2rem] bg-white/60">
-                        لا يوجد معلمون متاحون حالياً.
+                {teachers.length === 0 ? (
+                    <div className="p-12 text-center text-slate-500 modern-card rounded-[2.5rem] bg-white/60">
+                        <div className="text-5xl mb-4 opacity-20">📭</div>
+                        لا يوجد معلمون مسجلون في هذا القسم حالياً.
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {TEACHERS_DATA.map((teacher) => (
+                        {teachers.map((teacher) => (
                             <div key={teacher.id} className="modern-card flex flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-xl shadow-emerald-900/5 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-2xl hover:shadow-emerald-900/10">
                                 {/* Card Header (Image + Name + Rating) */}
                                 <div className="relative p-6 pb-4 border-b border-emerald-100 flex items-start justify-between gap-4">
@@ -144,12 +152,26 @@ export default function QuranTeachersPage() {
                                 </div>
 
                                 {/* Card Footer (Action) */}
-                                <div className="p-6 pt-0 mt-auto">
+                                <div className="p-6 pt-0 mt-auto flex flex-col gap-2">
+                                    <button
+                                        onClick={() => handleSubscribe(teacher.name)}
+                                        className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${
+                                            assignedTeacher === teacher.name 
+                                            ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100" 
+                                            : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
+                                        }`}
+                                    >
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+                                        </svg>
+                                        {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
+                                    </button>
+
                                     <a
                                         href={`https://wa.me/${teacher.phone}?text=مرحباً أستاذ ${teacher.name}، أنا طالب في منصة مشاعل المعرفة وأود الاستفسار عن التسجيل في حلقاتكم.`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:-translate-y-0.5 hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-500"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-50"
                                     >
                                         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />

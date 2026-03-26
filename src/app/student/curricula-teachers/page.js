@@ -15,67 +15,12 @@ const SUBJECTS = [
     { id: "islamic", name: "التربية الإسلامية", icon: "🕌" },
 ];
 
-const TEACHERS_DATA = [
-    {
-        id: "CRU-T-001",
-        name: "أ. علي حسن",
-        subjects: ["math", "science"],
-        specialization: "رياضيات وعلوم",
-        available: "الإثنين، الأربعاء (4-8 م)",
-        phone: "201210212176",
-        rating: "4.9",
-        image: "",
-        bio: "معلم متخصص في تدريس العلوم والرياضيات للمناهج المصرية للمرحلة الابتدائية والإعدادية مع التركيز على تبسيط المفاهيم الصعبة واستخدام تجارب عملية منزلية."
-    },
-    {
-        id: "CRU-T-002",
-        name: "أ. نورهان سعيد",
-        subjects: ["english"],
-        specialization: "لغة إنجليزية",
-        available: "السبت، الثلاثاء (2-6 م)",
-        phone: "201210212176",
-        rating: "4.8",
-        image: "",
-        bio: "معلمة لغة إنجليزية متميزة، متخصصة في تبسيط القواعد وتنمية مهارات المنهج السعودي والإماراتي بأساليب تفاعلية تجعل الطالب يحب المادة ويتقن مهارات التحدث بطلاقة."
-    },
-    {
-        id: "CRU-T-003",
-        name: "أ. محمود عباس",
-        subjects: ["arabic", "social"],
-        specialization: "لغة عربية ودراسات",
-        available: "الأحد، الخميس (5-9 م)",
-        phone: "201210212176",
-        rating: "4.7",
-        image: "",
-        bio: "خبير في تبسيط اللغة العربية والتاريخ والجغرافيا للمراحل المختلفة بمنهجية تفاعلية تعتمد على الخرائط الذهنية والربط بين المعلومات التاريخية والواقع المعاصر."
-    },
-    {
-        id: "CRU-T-004",
-        name: "أ. مريم عصام",
-        subjects: ["french"],
-        specialization: "لغة فرنسية",
-        available: "الجمعة (10ص - 2ظ)",
-        phone: "201210212176",
-        rating: "4.9",
-        image: "",
-        bio: "متخصصة في تعليم اللغة الفرنسية للمبتدئين والمتقدمين بأسلوب شيق يضمن الإتقان وسرعة النطق الصحيح من خلال الألعاب اللغوية والمشاركة الفعالة في الحصة."
-    },
-    {
-        id: "CRU-T-005",
-        name: "د. إبراهيم فوزي",
-        subjects: ["islamic"],
-        specialization: "تربية إسلامية وتفسير",
-        available: "يومياً (8-10 م)",
-        phone: "201210212176",
-        rating: "5.0",
-        image: "",
-        bio: "دكتور في العقيدة والتفسير، متخصص في تبسيط مادة التربية الإسلامية وربطها بالواقع العملي للطلاب بأسلوب قصصي تربوي يغرس القيم والأخلاق الحميدة في نفوسهم."
-    }
-];
-
 export default function CurriculaTeachersPage() {
     const [course, setCourse] = useState("المناهج الدراسية");
     const [selectedSubject, setSelectedSubject] = useState(null);
+    const [student, setStudent] = useState(null);
+    const [assignedTeacher, setAssignedTeacher] = useState("");
+    const [teachers, setTeachers] = useState([]);
 
     useEffect(() => {
         const cookies = document.cookie.split("; ");
@@ -85,13 +30,59 @@ export default function CurriculaTeachersPage() {
                 const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
                 const decoded = decodeURIComponent(atob(base64));
                 const data = JSON.parse(decoded);
+                setStudent(data);
                 if (data.course) setCourse(data.course);
+
+                // Fetch real teachers from "app_users"
+                const allUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
+                const curriculaTeachers = allUsers
+                    .filter(u => u.role === "teacher" && (u.department === "curricula" || u.department === "المناهج الدراسية"))
+                    .map(u => {
+                        const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
+                        return {
+                            id: u.id,
+                            name: u.name,
+                            specialization: profile.specialization || "معلم مناهج",
+                            available: profile.available || "متاح للتواصل",
+                            phone: u.phone,
+                            rating: profile.rating || "5.0",
+                            image: profile.image || "",
+                            bio: profile.bio || `معلم متخصص في المناهج الدراسية، يمتلك مهارات عالية في التبسيط والتدريس.`,
+                            subjects: u.subjects || profile.selectedSubjects || []
+                        };
+                    });
+                setTeachers(curriculaTeachers);
+
+                const profile = localStorage.getItem(`student_profile_${data.email}`);
+                if (profile) {
+                    const parsed = JSON.parse(profile);
+                    setAssignedTeacher(parsed.assignedTeacher || "");
+                }
             } catch { }
         }
-    }, []);
+    }, [course]);
+
+    const handleSubscribe = (teacherName) => {
+        if (!student) return;
+        const S = require("sweetalert2");
+        const profile = JSON.parse(localStorage.getItem(`student_profile_${student.email}`) || "{}");
+        const newTeacher = assignedTeacher === teacherName ? "" : teacherName;
+        const updated = { ...profile, assignedTeacher: newTeacher };
+        localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
+        setAssignedTeacher(newTeacher);
+        
+        S.fire({
+            title: newTeacher ? "تم الاشتراك بنجاح!" : "تم إلغاء الاشتراك",
+            text: newTeacher ? `أنت الآن مشترك مع ${teacherName}` : "يمكنك الاشتراك مع معلم آخر في أي وقت",
+            icon: "success",
+            confirmButtonText: "حسناً",
+            confirmButtonColor: "#059669",
+            timer: 2000
+        });
+    };
 
     const filteredTeachers = selectedSubject 
-        ? TEACHERS_DATA.filter(t => t.subjects.includes(selectedSubject.id))
+        ? teachers.filter(t => t.subjects.includes(selectedSubject.id))
         : [];
 
     return (
@@ -202,12 +193,27 @@ export default function CurriculaTeachersPage() {
                                             </div>
                                         </div>
 
-                                        <div className="p-6 pt-0 mt-auto">
+                                        {/* Card Footer (Action) */}
+                                        <div className="p-6 pt-0 mt-auto flex flex-col gap-2">
+                                            <button
+                                                onClick={() => handleSubscribe(teacher.name)}
+                                                className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${
+                                                    assignedTeacher === teacher.name 
+                                                    ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100" 
+                                                    : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
+                                                }`}
+                                            >
+                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+                                                </svg>
+                                                {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
+                                            </button>
+
                                             <a
                                                 href={`https://wa.me/${teacher.phone}?text=مرحباً أستاذ ${teacher.name}، أنا طالب في منصة مشاعل المعرفة وأود الاستفسار عن التسجيل في حلقاتكم لمادة ${selectedSubject.name}.`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:-translate-y-0.5 hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-500"
+                                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-50"
                                             >
                                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />

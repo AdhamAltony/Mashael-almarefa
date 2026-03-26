@@ -25,6 +25,7 @@ export default function StudentProfilePage() {
     guardian: "غير محدد",
     phone: "غير محدد",
     email: "",
+    assignedTeacher: "",
   });
 
   const [progressData, setProgressData] = useState({
@@ -73,7 +74,8 @@ export default function StudentProfilePage() {
             age: data.age || "",
             country: data.country || data.countryName || "غير محدد",
             phone: data.phone || data.guardianPhone || "غير محدد",
-            joinDate: data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+            joinDate: data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
+            assignedTeacher: ""
         };
 
         if (localData) {
@@ -98,6 +100,12 @@ export default function StudentProfilePage() {
         }
       } catch (e) { console.error(e); }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleUpdate = () => window.location.reload();
+    window.addEventListener('profileUpdate', handleUpdate);
+    return () => window.removeEventListener('profileUpdate', handleUpdate);
   }, []);
 
   const handleChange = (e) => {
@@ -133,13 +141,12 @@ export default function StudentProfilePage() {
     localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(student));
     
     // Update global app_users database
-    const { getLocalUsers, saveLocalUsers } = require("@/utils/local-db");
-    const allUsers = getLocalUsers();
+    const allUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
     const updatedUsers = allUsers.map(u => {
         if (u.email === student.email) return { ...u, name: student.name };
         return u;
     });
-    saveLocalUsers(updatedUsers);
+    localStorage.setItem("app_users", JSON.stringify(updatedUsers));
 
     // Sync navbar and local display
     window.dispatchEvent(new Event('profileUpdate'));
@@ -178,7 +185,10 @@ export default function StudentProfilePage() {
                 <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">{student.name}</h1>
                 <p className="mt-1 text-sm text-slate-600">{student.level}</p>
                 <div className="mt-2 flex items-center gap-4">
-                    <p className="text-sm font-medium text-slate-700">
+                    <p className="text-sm font-medium text-slate-700 mt-1">
+                      المعلم المسؤول: <span className="font-bold text-emerald-900 border-b border-emerald-200">{student.assignedTeacher || "لم يتم الاشتراك بعد"}</span>
+                    </p>
+                    <p className="text-sm font-medium text-slate-500 mt-1">
                       رقم الطالب: <span className="font-bold text-emerald-800">{student.id}</span>
                     </p>
                     {saved && <span className="text-xs font-bold text-emerald-600 animate-bounce">تم حفظ التغييرات!</span>}
@@ -375,12 +385,14 @@ export default function StudentProfilePage() {
             <div className="mt-10 pt-6 border-t border-emerald-50">
                 <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلم المسؤول</p>
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
-                        {student.teacher?.charAt(0) || "أ"}
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white">
+                        {student.assignedTeacher?.charAt(0) || "؟"}
                     </div>
                     <div>
-                        <p className="text-sm font-black text-emerald-950">{student.teacher}</p>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase">معلم لغة عربية</p>
+                        <p className="text-sm font-black text-emerald-950">{student.assignedTeacher || "لم يتم الاشتراك"}</p>
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase">
+                            {student.assignedTeacher ? "معلمك الحالي" : "بانتظار اختيار معلم"}
+                        </p>
                     </div>
                 </div>
             </div>
