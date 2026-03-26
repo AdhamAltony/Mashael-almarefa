@@ -133,59 +133,29 @@ export default function StudentDashboardPage() {
                 </div>
              )}
           </div>
-
-          <h2 className="text-xl font-black text-emerald-950 mt-8">سجل الحصص الأخيرة</h2>
-          <ul className="mt-4 space-y-3">
-            {sessions.filter(s => s.status).length > 0 ? (
-              sessions.filter(s => s.status).slice(0, 5).map((item, idx) => (
-                <li key={idx} className="rounded-2xl border border-emerald-100 bg-white/70 p-4">
-                  <p className="font-bold text-emerald-900">{item.title}</p>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-sm text-slate-700">{item.date}</p>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-md ${item.status === 'حاضر' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                  {item.status === 'حاضر' && (
-                    <p className="text-xs text-emerald-600 font-bold mt-1">التقييم: {item.rating} / 10</p>
-                  )}
-                </li>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-10 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-bold text-emerald-950">لا توجد حصص مسجلة حتى الآن</p>
-                <p className="mt-1 text-xs text-slate-500">سيظهر سجل حصصك هنا فور قيام المعلم بتسجيل حضورك.</p>
-              </div>
-            )}
-          </ul>
         </article>
 
         <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-          <h2 className="text-xl font-black text-emerald-950">ملاحظات المعلم</h2>
-          <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-slate-700">
-            <p className="font-bold text-emerald-900">أحدث ملاحظة:</p>
-            <p className="mt-2 text-base leading-relaxed">
-              {progressData.notes || "لا توجد ملاحظات مسجلة من المعلم حالياً."}
-            </p>
-          </div>
+          <h2 className="text-xl font-black text-emerald-950">ملاحظات وتقدم الطالب</h2>
           
           {progressData.achievements && (
             <div className="mt-6">
-              <h3 className="font-bold text-emerald-900 mb-3">أبرز الإنجازات:</h3>
-              <ul className="space-y-2">
-                {progressData.achievements?.split('\n').filter(a => a.trim()).slice(0, 3).map((a, idx) => (
-                   <li key={idx} className="text-sm text-slate-700 flex gap-2">
-                     <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+              <h3 className="font-bold text-emerald-900 mb-4">أبرز الإنجازات والملاحظات:</h3>
+              <ul className="space-y-3">
+                {progressData.achievements?.split('\n').filter(a => a.trim()).slice(0, 5).map((a, idx) => (
+                   <li key={idx} className="text-sm text-slate-700 flex gap-3 p-3 rounded-xl bg-emerald-50/50 border border-emerald-100/50">
+                     <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
                      {a}
                    </li>
                 ))}
               </ul>
             </div>
+          )}
+
+          {!progressData.achievements && (
+             <div className="mt-8 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-10 text-center">
+                <p className="text-sm text-slate-500 italic">لا توجد إنجازات أو ملاحظات مسجلة حالياً.</p>
+             </div>
           )}
         </article>
       </section>
