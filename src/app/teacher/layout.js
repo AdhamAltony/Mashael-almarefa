@@ -4,8 +4,7 @@ import { cookies } from "next/headers";
 export default async function TeacherLayout({ children }) {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session");
-  let teacherLinks = [];
-
+  
   let sessionData = null;
   if (sessionCookie) {
     try {
@@ -13,47 +12,16 @@ export default async function TeacherLayout({ children }) {
       const uriEncodedStr = Buffer.from(base64Str, "base64").toString("utf8");
       const jsonStr = decodeURIComponent(uriEncodedStr);
       sessionData = JSON.parse(jsonStr);
-      const course = sessionData.course;
-
-      if (course === "ركن القرآن الكريم" || course === "ركن القرآن") {
-        teacherLinks = [
-          { label: "الملف الشخصي", href: "/teacher/profile" },
-          { label: "طلاب القسم", href: "/quran-and-sciences/students" }
-        ];
-      } else if (course === "اللغة العربية لغير الناطقين" || course === "العربية لغير الناطقين") {
-        teacherLinks = [
-          { label: "الملف الشخصي", href: "/teacher/profile" },
-          { label: "طلاب القسم", href: "/arabic-non-native/students" }
-        ];
-      } else if (course === "المناهج الدراسية") {
-        teacherLinks = [
-          { label: "الملف الشخصي", href: "/teacher/profile" },
-          { label: "طلاب القسم", href: "/egypt-gulf-curricula/students" }
-        ];
-      } else {
-        teacherLinks = [
-          { label: "الملف الشخصي", href: "/teacher/profile" },
-          { label: "ركن القرآن", href: "/quran-and-sciences" },
-          { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
-          { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
-        ];
-      }
     } catch {
-      teacherLinks = [
-        { label: "الملف الشخصي", href: "/teacher/profile" },
-        { label: "ركن القرآن", href: "/quran-and-sciences" },
-        { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
-        { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
-      ];
+      // Session parsing failed
     }
-  } else {
-    teacherLinks = [
-      { label: "الملف الشخصي", href: "/teacher/profile" },
-      { label: "ركن القرآن", href: "/quran-and-sciences" },
-      { label: "العربية لغير الناطقين", href: "/arabic-non-native" },
-      { label: "المناهج الدراسية", href: "/egypt-gulf-curricula" },
-    ];
   }
+
+  const teacherLinks = [
+    { label: "الملف الشخصي", href: "/teacher/profile" },
+    { label: "طلاب القسم", href: "/teacher/students" },
+    { label: "تسجيل حضور", href: "/teacher/attendance" }
+  ];
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#f8fbfb] via-[#f2f8f8] to-[#eef5f5]">

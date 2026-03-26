@@ -10,39 +10,37 @@ export default function TeacherNavbar({ sectionTitle, links, ctaLabel, ctaHref, 
 
     const loadSession = () => {
         const cookies = document.cookie.split("; ");
-        const roleCookie = cookies.find(c => c.startsWith("userRole="));
-        if (roleCookie) {
-            const sessionCookie = cookies.find(c => c.startsWith("session="));
-            if (sessionCookie) {
-                try {
-                    const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                    const decoded = decodeURIComponent(atob(base64));
-                    const data = JSON.parse(decoded);
+        const sessionCookie = cookies.find(c => c.startsWith("session="));
+        if (sessionCookie) {
+            try {
+                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                const decoded = decodeURIComponent(atob(base64));
+                const data = JSON.parse(decoded);
 
-                    // Check for local profile image
-                    const localProfile = localStorage.getItem(`teacher_profile_${data.email}`);
-                    if (localProfile) {
-                        const parsedLocal = JSON.parse(localProfile);
-                        if (parsedLocal.image) {
-                            data.image = parsedLocal.image;
-                        }
+                // Check for local profile image
+                const localProfile = localStorage.getItem(`teacher_profile_${data.email}`);
+                if (localProfile) {
+                    const parsedLocal = JSON.parse(localProfile);
+                    if (parsedLocal.image) {
+                        data.image = parsedLocal.image;
                     }
-
-                    setSession(data);
-                } catch {
-                    console.error("Failed to parse session");
-                    setSession({ role: "teacher", name: "معلم تجريبي", email: "teacher@gmail.com" });
+                    if (parsedLocal.specialization) {
+                        data.course = parsedLocal.specialization;
+                    }
                 }
-            } else {
+
+                setSession(data);
+            } catch {
+                console.error("Failed to parse session");
                 setSession({ role: "teacher", name: "معلم تجريبي", email: "teacher@gmail.com" });
             }
+        } else {
+            setSession({ role: "teacher", name: "معلم تجريبي", email: "teacher@gmail.com" });
         }
     };
 
     useEffect(() => {
         loadSession();
-
-        // Listen for profile updates from the same page
         window.addEventListener('profileUpdate', loadSession);
         return () => window.removeEventListener('profileUpdate', loadSession);
     }, []);
@@ -54,10 +52,17 @@ export default function TeacherNavbar({ sectionTitle, links, ctaLabel, ctaHref, 
         router.refresh();
     };
 
+    const getDynamicLinks = (currentSession) => {
+        return [
+            { label: "طلاب القسم", href: "/teacher/students" },
+            { label: "الملف الشخصي", href: "/teacher/profile" },
+        ];
+    };
+
     return (
         <PortalNavbar
-            sectionTitle={sectionTitle}
-            links={links}
+            sectionTitle={session?.course || sectionTitle}
+            links={getDynamicLinks(session)}
             ctaLabel={ctaLabel}
             ctaHref={ctaHref}
             showCtaWithSession={showCtaWithSession}

@@ -4,6 +4,21 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import TeacherBio from "@/components/teacher-bio";
 
+const DEPARTMENTS = [
+    { id: "quran", name: "ركن القرآن الكريم" },
+    { id: "arabic", name: "اللغة العربية لغير الناطقين" },
+    { id: "curricula", name: "المناهج الدراسية" },
+];
+
+const CURRICULA_SUBJECTS = [
+    { id: "math", name: "الرياضيات", icon: "➗" },
+    { id: "science", name: "العلوم", icon: "🧪" },
+    { id: "arabic_school", name: "اللغة العربية", icon: "📖" },
+    { id: "english", name: "اللغة الإنجليزية", icon: "🔤" },
+    { id: "social", name: "الدراسات الاجتماعية", icon: "🌍" },
+    { id: "islamic", name: "التربية الإسلامية", icon: "🌙" },
+];
+
 export default function TeacherProfilePage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
@@ -12,13 +27,16 @@ export default function TeacherProfilePage() {
     // Initial state matching existing teacher data structure
     const [profile, setProfile] = useState({
         name: "جاري التحميل...",
+        email: "",
+        department: "quran",
+        selectedSubjects: [],
         specialization: "لم يتم التحديد بعد",
         available: "غير محدد",
         phone: "غير محدد",
         bio: "",
         image: "",
         status: "نشط",
-        rating: "0"
+        rating: "4.9"
     });
 
     useEffect(() => {
@@ -32,27 +50,47 @@ export default function TeacherProfilePage() {
                 const decoded = decodeURIComponent(atob(base64));
                 const data = JSON.parse(decoded);
                 currentEmail = data.email;
-                setProfile(prev => ({
-                    ...prev,
-                    name: data.name || "معلم جديد",
-                    specialization: data.department 
-                        ? `${data.department}${data.subjects?.length > 0 ? ` (${data.subjects.join("، ")})` : ""}` 
-                        : "لم يتم تحديد القسم",
-                }));
+                
+                // Fetch the latest central record from "app_users" (the true current database)
+                const { getLocalUsers } = require("@/utils/local-db");
+                const allUsers = getLocalUsers();
+                const dbUser = allUsers.find(u => u.email === currentEmail);
+
+                // Initialize from session/database data
+                const deptId = DEPARTMENTS.find(d => d.name === (dbUser?.department || data.department))?.id || "quran";
+                const initialProfile = {
+                    ...profile,
+                    name: dbUser?.name || data.name || "معلم جديد",
+                    email: currentEmail,
+                    department: deptId,
+                    selectedSubjects: dbUser?.subjects || data.subjects || [],
+                    specialization: dbUser?.course || data.course || (data.department ? `${data.department}` : "لم يتم تحديد القسم"),
+                    phone: dbUser?.phone || data.phone || "",
+                };
+
+                // Merge with extended local profile data (like bio, image, phone) if it exists for THIS email
+                const savedProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
+                if (savedProfile) {
+                    const parsed = JSON.parse(savedProfile);
+                    setProfile({
+                        ...initialProfile,
+                        ...parsed,
+                        // Ensure official record attributes take absolute precedence
+                        name: initialProfile.name,
+                        department: initialProfile.department,
+                        selectedSubjects: initialProfile.selectedSubjects,
+                        specialization: initialProfile.specialization
+                    });
+                } else {
+                    setProfile(initialProfile);
+                }
             } catch (e) {
                 console.error("Failed to parse session", e);
             }
         }
         
-        // Load from localStorage using email-specific key for reliability
-        const savedProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
-        if (savedProfile) {
-            setProfile(JSON.parse(savedProfile));
-        } else {
-            // Check legacy key
-            const legacy = localStorage.getItem("teacher_profile");
-            if (legacy) setProfile(JSON.parse(legacy));
-        }
+        // Remove legacy key to prevent side effects
+        localStorage.removeItem("teacher_profile");
         setLoading(false);
     }, []);
 
@@ -62,30 +100,38 @@ export default function TeacherProfilePage() {
         setSaved(false);
     };
 
+    const toggleSubject = (subName) => {
+        setProfile(prev => {
+            const currentSubjects = prev.selectedSubjects || [];
+            const subjects = currentSubjects.includes(subName)
+                ? currentSubjects.filter(s => s !== subName)
+                : [...currentSubjects, subName];
+            
+            const deptName = DEPARTMENTS.find(d => d.id === prev.department)?.name || "";
+            const spec = deptName + (subjects.length > 0 ? ` (${subjects.join("، ")})` : "");
+            
+            return { ...prev, selectedSubjects: subjects, specialization: spec };
+        });
+        setSaved(false);
+    };
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const newImage = reader.result;
-                // Get email from session if possible to save immediately
-                const session = document.cookie.split("; ").find(c => c.startsWith("session="));
-                let email = "";
-                try {
-                    const data = JSON.parse(decodeURIComponent(atob(decodeURIComponent(session.split("=")[1]))));
-                    email = data.email;
-                } catch {}
-
-                setProfile(prev => {
+                setProfile((prev) => {
                     const updated = { ...prev, image: newImage };
-                    if (email) {
-                        localStorage.setItem(`teacher_profile_${email}`, JSON.stringify(updated));
-                        // Fire a custom event to notify Navbar on the same page
+                    // Save image immediately so it reflects in Navbar and after refresh
+                    if (prev.email) {
+                        localStorage.setItem(`teacher_profile_${prev.email}`, JSON.stringify(updated));
+                        // Notify Navbar
                         window.dispatchEvent(new Event('profileUpdate'));
                     }
-                    localStorage.setItem("teacher_profile", JSON.stringify(updated)); 
                     return updated;
                 });
+                // Feedback
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
             };
@@ -95,20 +141,34 @@ export default function TeacherProfilePage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Get email from session if possible
-        const session = document.cookie.split("; ").find(c => c.startsWith("session="));
-        let email = "";
-        try {
-            const data = JSON.parse(decodeURIComponent(atob(decodeURIComponent(session.split("=")[1]))));
-            email = data.email;
-        } catch {}
+        const { updateUser } = require("@/utils/local-db");
+        
+        // 1. Update Central DB
+        const updatedUser = {
+            email: profile.email,
+            name: profile.name,
+            phone: profile.phone,
+            department: DEPARTMENTS.find(d => d.id === profile.department)?.name || profile.specialization,
+            subjects: profile.selectedSubjects,
+            course: profile.specialization
+        };
+        updateUser(updatedUser);
 
-        localStorage.setItem(`teacher_profile_${email}`, JSON.stringify(profile));
-        localStorage.setItem("teacher_profile", JSON.stringify(profile)); // Keep legacy for compatibility
+        // 2. Update Local Cache
+        localStorage.setItem(`teacher_profile_${profile.email}`, JSON.stringify(profile));
+        
+        // 3. Update Session Cookie
+        const base64 = btoa(encodeURIComponent(JSON.stringify({ ...updatedUser, role: "teacher" })));
+        document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
+        
+        // 4. Notify UI
+        window.dispatchEvent(new Event('profileUpdate'));
+        
         setSaved(true);
-        // In a real app, we would send this to the API
-        // For now, we simulate success
-        setTimeout(() => setSaved(false), 3000);
+        setTimeout(() => {
+            setSaved(false);
+            router.refresh();
+        }, 3000);
     };
 
     if (loading) return <div className="p-10 text-center text-emerald-900 font-bold">جاري التحميل...</div>;
@@ -134,25 +194,16 @@ export default function TeacherProfilePage() {
                         <article className="modern-card flex flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/60 shadow-xl shadow-emerald-900/5 transition-opacity duration-300" style={{ opacity: profile.status === 'إجازة' ? 0.7 : 1 }}>
                             <div className="relative p-6 pb-4 border-b border-emerald-100 flex items-start justify-between gap-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-2xl font-black text-white shadow-lg overflow-hidden border-2 border-white group cursor-pointer">
+                                    <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-2xl font-black text-white shadow-lg overflow-hidden border-2 border-white group">
                                         {profile.image ? (
                                             <img src={profile.image} alt={profile.name} className="h-full w-full object-cover" />
                                         ) : (
                                             <span className="group-hover:opacity-0 transition-opacity">{profile.name?.charAt(0) || "م"}</span>
                                         )}
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
-                                            onChange={handleImageChange} 
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                                            title="رفع صورة شخصية" 
-                                        />
+                                        <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="تغيير الصورة الشخصية" />
                                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                         </div>
-                                        {profile.status === 'إجازة' && (
-                                            <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center text-[10px] font-bold text-white backdrop-blur-[1px]">إجازة</div>
-                                        )}
                                     </div>
                                     <div className="flex flex-col">
                                         <h3 className="font-bold text-lg text-emerald-950">{profile.name || "اسم المعلم"}</h3>
@@ -174,27 +225,21 @@ export default function TeacherProfilePage() {
                                 <div className="mt-auto flex flex-col gap-3 text-sm">
                                     <div className="flex items-start gap-2">
                                         <div className="mt-0.5 rounded-full bg-emerald-100 p-1 text-emerald-600 shrink-0"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg></div>
-                                        <div className="flex-1 font-semibold text-emerald-900">{profile.specialization || "التخصص (مثلاً: حفظ وتجويد)"}</div>
+                                        <div className="flex-1 font-semibold text-emerald-900">{profile.specialization}</div>
                                     </div>
                                     <div className="flex items-start gap-2">
                                         <div className="mt-0.5 rounded-full bg-emerald-100 p-1 text-emerald-600 shrink-0"><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                                        <div className="flex-1 font-medium text-emerald-800/80">{profile.available || "الأيام والساعات المتاحة"}</div>
+                                        <div className="flex-1 font-medium text-emerald-800/80">{profile.available}</div>
                                     </div>
                                 </div>
                             </div>
                         </article>
-                        {profile.status === 'إجازة' && (
-                            <div className="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold text-center">
-                                تنبيه: عند تفعيل وضع "إجازة"، سيعرف الطلاب أنك غير متاح حالياً لاستقبال حصص جديدة.
-                            </div>
-                        )}
                     </div>
                 </aside>
 
                 {/* Edit Form */}
                 <section className="lg:col-span-2">
                     <form onSubmit={handleSubmit} className="modern-card rounded-3xl border border-white/70 p-8 shadow-xl shadow-emerald-900/5 space-y-6">
-                        
                         {/* Status Toggle Block */}
                         <div className="space-y-3">
                             <label className="text-sm font-bold text-emerald-900">حالة التواجد الحالية</label>
@@ -227,34 +272,53 @@ export default function TeacherProfilePage() {
                                     value={profile.name}
                                     onChange={handleChange}
                                     placeholder="أ. محمد علي"
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
                                     required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-emerald-900">التخصص / المادة</label>
-                                <input
-                                    type="text"
-                                    name="specialization"
-                                    value={profile.specialization}
-                                    onChange={handleChange}
-                                    placeholder="مثلاً: لغة عربية ونحو"
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                    required
-                                />
+                                <label className="text-sm font-bold text-emerald-900">ركن التدريس (القسم)</label>
+                                <select 
+                                    name="department" 
+                                    value={profile.department} 
+                                    onChange={(e) => {
+                                        const dept = e.target.value;
+                                        const deptName = DEPARTMENTS.find(d => d.id === dept)?.name || "";
+                                        setProfile(prev => ({ ...prev, department: dept, selectedSubjects: [], specialization: deptName }));
+                                        setSaved(false);
+                                    }}
+                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium outline-none appearance-none"
+                                >
+                                    {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-emerald-900">الصورة الشخصية</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                />
+                        {profile.department === 'curricula' && (
+                            <div className="space-y-3 animate-in fade-in duration-500">
+                                <label className="text-sm font-bold text-emerald-900">المواد الدراسية (تخصصك)</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {CURRICULA_SUBJECTS.map(sub => (
+                                        <button
+                                            key={sub.id}
+                                            type="button"
+                                            onClick={() => toggleSubject(sub.name)}
+                                            className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 transition-all ${
+                                                profile.selectedSubjects.includes(sub.name)
+                                                    ? "border-emerald-500 bg-white shadow-inner"
+                                                    : "border-emerald-100 bg-white/40 hover:border-emerald-300"
+                                            }`}
+                                        >
+                                            <span className="text-xl">{sub.icon}</span>
+                                            <span className="text-[10px] font-bold">{sub.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-emerald-900">المواعيد المتاحة</label>
                                 <input
@@ -263,7 +327,7 @@ export default function TeacherProfilePage() {
                                     value={profile.available}
                                     onChange={handleChange}
                                     placeholder="مثلاً: السبت والاثنين (5-9 مساءً)"
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
                                     required
                                 />
                             </div>
@@ -277,7 +341,7 @@ export default function TeacherProfilePage() {
                                 value={profile.phone}
                                 onChange={handleChange}
                                 placeholder="201xxxxxxxxx"
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
                                 required
                                 dir="ltr"
                             />
@@ -291,7 +355,7 @@ export default function TeacherProfilePage() {
                                 onChange={handleChange}
                                 rows={4}
                                 placeholder="اكتب مهاراتك، خبراتك، والشهادات التي حصلت عليها..."
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium"
                                 required
                             ></textarea>
                         </div>
