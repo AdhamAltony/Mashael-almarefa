@@ -3,18 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const QUICK_STATS = [
-  { label: "نسبة الحضور", value: "96%", hint: "آخر 30 يوم" },
-  { label: "متوسط التقييم", value: "8.6 / 10", hint: "12 حصة" },
-  { label: "الساعات المكتملة", value: "42", hint: "ساعة تعليمية" },
-  { label: "الواجبات المنجزة", value: "18", hint: "من أصل 20" },
-];
-
-const UPCOMING = [
-  { title: "قواعد اللغة العربية", date: "السبت 7 مارس 2026", time: "6:00 م", duration: "60 دقيقة" },
-  { title: "تلاوة وتجويد", date: "الاثنين 9 مارس 2026", time: "5:30 م", duration: "45 دقيقة" },
-  { title: "مراجعة أسبوعية", date: "الأربعاء 11 مارس 2026", time: "7:00 م", duration: "30 دقيقة" },
-];
+// Data fetched dynamically from progress and sessions in useEffect
 
 export default function StudentDashboardPage() {
   const [session, setSession] = useState(null);
@@ -59,7 +48,7 @@ export default function StudentDashboardPage() {
     }
   }, []);
 
-  const studentName = session?.name || "مريم أحمد خالد";
+  const studentName = session?.name || "جاري التحميل...";
 
   const dynamicStats = [
     { label: "نسبة الحضور", value: `${progressData.attendance}%`, hint: "إجمالي الحضور" },
@@ -126,13 +115,15 @@ export default function StudentDashboardPage() {
                 </li>
               ))
             ) : (
-              UPCOMING.map((item) => (
-                <li key={item.title + item.date} className="rounded-2xl border border-emerald-100 bg-white/70 p-4">
-                  <p className="font-bold text-emerald-900">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-700">{item.date}</p>
-                  <p className="text-sm text-emerald-700">{item.time} - {item.duration}</p>
-                </li>
-              ))
+              <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-10 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-emerald-950">لا توجد حصص مسجلة حتى الآن</p>
+                <p className="mt-1 text-xs text-slate-500">سيظهر سجل حصصك هنا فور قيام المعلم بتسجيل حضورك.</p>
+              </div>
             )}
           </ul>
         </article>
