@@ -96,7 +96,6 @@ export default function SignupPage() {
         }
 
         // Persist user locally
-        const { saveUser } = require("@/utils/local-db");
         const userData = {
             name: formData.name,
             email: formData.email,

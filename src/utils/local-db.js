@@ -131,9 +131,9 @@ export const deleteUser = async (id, email) => {
             throw error;
         }
 
-        // Clean up locally
+        // 2. Local Cleanup (Only in browser)
         cachedUsers = null;
-        if (email) {
+        if (email && typeof window !== 'undefined') {
             localStorage.removeItem(`sessions_${email}`);
             localStorage.removeItem(`progress_${email}`);
             localStorage.removeItem(`assigned_courses_${email}`);

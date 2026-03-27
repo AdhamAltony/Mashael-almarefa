@@ -14,7 +14,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { getLocalUsers } = require("@/utils/local-db");
+      const { getLocalUsers } = await import("@/utils/local-db");
       const allUsers = await getLocalUsers();
       
       const totalStudents = allUsers.filter(u => u.role === "student").length;

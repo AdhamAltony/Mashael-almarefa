@@ -20,7 +20,7 @@ export default function LoginPage() {
       return;
     }
 
-    const { getLocalUsers } = require("@/utils/local-db");
+    const { getLocalUsers } = await import("@/utils/local-db");
     const validUsers = await getLocalUsers();
 
     const userByEmail = validUsers.find(u => u.email === email);

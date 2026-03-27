@@ -394,7 +394,7 @@ export default function QuranAndSciencesSessionPage() {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const { getLocalUsers } = require("@/utils/local-db");
+      const { getLocalUsers } = await import("@/utils/local-db");
       const all = await getLocalUsers();
       setStudents(all.filter(u => u.role === "student" && u.course === "ركن القرآن الكريم"));
     };
