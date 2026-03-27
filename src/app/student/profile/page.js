@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import * as db from "@/utils/db";
 
 function StatCard({ label, value, hint }) {
   return (
-    <article className="modern-card rounded-2xl border border-emerald-100/70 p-5 shadow-lg shadow-emerald-900/5">
+    <article className="modern-card rounded-2xl border border-emerald-100/70 p-5 shadow-lg shadow-emerald-900/5 bg-white/60 backdrop-blur-sm">
       <p className="text-sm font-bold text-emerald-700">{label}</p>
       <p className="mt-1 text-2xl font-black text-emerald-950">{value}</p>
       <p className="mt-1 text-sm text-slate-600">{hint}</p>
@@ -44,65 +45,71 @@ export default function StudentProfilePage() {
   const [upcomingSessions, setUpcomingSessions] = useState([]);
 
   useEffect(() => {
-    const cookies = document.cookie.split("; ");
-    const sessionCookie = cookies.find(c => c.startsWith("session="));
-    
-    if (sessionCookie?.split("=")[1]) {
-      try {
-        const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-        const decoded = decodeURIComponent(atob(base64));
-        const data = JSON.parse(decoded);
-        const currentEmail = data.email;
-        
-        // Fetch sessions assigned to this student
-        const savedSessions = localStorage.getItem(`sessions_${currentEmail}`);
-        if (savedSessions) {
-            setUpcomingSessions(JSON.parse(savedSessions).slice(0, 3));
-        }
+    const loadProfile = async () => {
+      const cookies = document.cookie.split("; ");
+      const sessionCookie = cookies.find(c => c.startsWith("session="));
+      
+      if (sessionCookie?.split("=")[1]) {
+        try {
+          const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+          const decoded = decodeURIComponent(atob(base64));
+          const data = JSON.parse(decoded);
+          const currentEmail = data.email;
+          
+          // Fetch sessions assigned to this student
+          const allUsers = await db.getLocalUsers();
+          const currentUser = allUsers.find(u => u.email === currentEmail);
+          
+          // Load sessions
+          const savedSessionsString = localStorage.getItem(`sessions_${currentEmail}`);
+          if (savedSessionsString) {
+              setUpcomingSessions(JSON.parse(savedSessionsString).slice(0, 3));
+          }
 
-        // Load profile data
-        const localData = localStorage.getItem(`student_profile_${currentEmail}`);
-        const initialFromSession = {
-            name: data.name || "طالب جديد",
-            course: data.course || "بوابة الطالب",
-            id: data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
-            level: data.department 
-                ? `${data.department}${data.subjects?.length > 0 ? ` - (${data.subjects.join("، ")})` : ""}` 
-                : "بانتظار تحديد المستوى",
-            email: data.email || "",
-            guardian: data.guardian || "غير محدد",
-            age: data.age || "",
-            country: data.country || data.countryName || "غير محدد",
-            phone: data.phone || data.guardianPhone || "غير محدد",
-            joinDate: data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
-            assignedTeacher: ""
-        };
+          // Load profile data from DB
+          const dbProfile = await db.getProfile("student_profile", currentEmail);
+          const initialFromSession = {
+              name: currentUser?.name || data.name || "طالب جديد",
+              course: currentUser?.course || data.course || "بوابة الطالب",
+              id: currentUser?.id || data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
+              level: currentUser?.department 
+                  ? `${currentUser.department}${currentUser.subjects?.length > 0 ? ` - (${currentUser.subjects.join("، ")})` : ""}` 
+                  : "بانتظار تحديد المستوى",
+              email: currentEmail || "",
+              guardian: currentUser?.guardian || data.guardian || "غير محدد",
+              age: currentUser?.age || data.age || "",
+              country: currentUser?.country || data.country || data.countryName || "غير محدد",
+              phone: currentUser?.phone || data.phone || data.guardianPhone || "غير محدد",
+              joinDate: currentUser?.joinDate || data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
+              assignedTeacher: ""
+          };
 
-        if (localData) {
-            const parsedLocal = JSON.parse(localData);
-            let teacherImage = "";
-            if (parsedLocal.assignedTeacherEmail) {
-                const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
-                if (tProfile) {
-                    teacherImage = JSON.parse(tProfile).image || "";
-                }
-            }
-            setStudent({
-                ...initialFromSession,
-                ...parsedLocal,
-                assignedTeacherImage: teacherImage
-            });
-        } else {
-            setStudent(initialFromSession);
-        }
+          if (dbProfile && Object.keys(dbProfile).length > 0) {
+              let teacherImage = "";
+              if (dbProfile.assignedTeacherEmail) {
+                  const tProfile = await db.getProfile("teacher_profile", dbProfile.assignedTeacherEmail);
+                  if (tProfile) {
+                      teacherImage = tProfile.image || "";
+                  }
+              }
+              setStudent({
+                  ...initialFromSession,
+                  ...dbProfile,
+                  assignedTeacherImage: teacherImage
+              });
+          } else {
+              setStudent(initialFromSession);
+          }
 
-        // Fetch progress
-        const savedProgress = localStorage.getItem(`progress_${currentEmail}`);
-        if (savedProgress) {
-          setProgressData(JSON.parse(savedProgress));
-        }
-      } catch (e) { console.error(e); }
-    }
+          // Fetch progress from DB
+          const dbProgress = await db.getProfile("student_progress", currentEmail);
+          if (dbProgress && Object.keys(dbProgress).length > 0) {
+            setProgressData(dbProgress);
+          }
+        } catch (e) { console.error(e); }
+      }
+    };
+    loadProfile();
   }, []);
 
   useEffect(() => {
@@ -116,20 +123,21 @@ export default function StudentProfilePage() {
     setStudent(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const newImage = reader.result;
-        setStudent((prev) => {
-          const updated = { ...prev, image: newImage };
-          // Save image immediately so it reflects in Navbar and after refresh
-          localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
-          // Notify Navbar
-          window.dispatchEvent(new Event('profileUpdate'));
-          return updated;
-        });
+        const updated = { ...student, image: newImage };
+        setStudent(updated);
+        
+        // Save image to DB
+        await db.saveProfile("student_profile", student.email, updated);
+        
+        // Notify Navbar
+        window.dispatchEvent(new Event('profileUpdate'));
+        
         // Feedback
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -138,18 +146,13 @@ export default function StudentProfilePage() {
     }
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    // Update individual profile file
-    localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(student));
+    // Save to profile DB
+    await db.saveProfile("student_profile", student.email, student);
     
     // Update global app_users database
-    const allUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
-    const updatedUsers = allUsers.map(u => {
-        if (u.email === student.email) return { ...u, name: student.name };
-        return u;
-    });
-    localStorage.setItem("app_users", JSON.stringify(updatedUsers));
+    await db.updateUser(student.email, { name: student.name });
 
     // Sync navbar and local display
     window.dispatchEvent(new Event('profileUpdate'));
@@ -167,9 +170,9 @@ export default function StudentProfilePage() {
       <div className="absolute bottom-0 right-0 h-[460px] w-[460px] translate-x-1/4 translate-y-1/4 rounded-full bg-emerald-100/65 blur-3xl" />
 
       <div className="site-container relative z-10 pt-20">
-        <section className="modern-card mb-8 overflow-hidden rounded-3xl border border-white/60 p-6 shadow-2xl shadow-emerald-900/10 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4 sm:gap-5">
+        <section className="modern-card mb-8 overflow-hidden rounded-3xl border border-white/60 p-6 shadow-2xl shadow-emerald-900/10 sm:p-8 bg-white/60 backdrop-blur-sm">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between text-right">
+            <div className="flex items-start gap-4 sm:gap-5 flex-row-reverse text-right lg:flex-row lg:text-right">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-2xl font-black text-white shadow-lg shadow-emerald-500/30 sm:h-20 sm:w-20 sm:text-3xl relative overflow-hidden group">
                 {student.image ? (
                   <img src={student.image} alt={student.name} className="h-full w-full object-cover" />
@@ -186,12 +189,12 @@ export default function StudentProfilePage() {
                   الملف الشخصي للطالب
                 </p>
                 <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">{student.name}</h1>
-                <p className="mt-1 text-sm text-slate-600">{student.level}</p>
-                <div className="mt-2 flex items-center gap-4">
-                    <p className="text-sm font-medium text-slate-700 mt-1">
+                <p className="mt-1 text-sm text-slate-600 font-bold">{student.level}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-4">
+                    <p className="text-sm font-bold text-slate-700 mt-1">
                       المعلم المسؤول: <span className="font-bold text-emerald-900 border-b border-emerald-200">{student.assignedTeacher || "لم يتم الاشتراك بعد"}</span>
                     </p>
-                    <p className="text-sm font-medium text-slate-500 mt-1">
+                    <p className="text-sm font-bold text-slate-500 mt-1">
                       رقم الطالب: <span className="font-bold text-emerald-800">{student.id}</span>
                     </p>
                     {saved && <span className="text-xs font-bold text-emerald-600 animate-bounce">تم حفظ التغييرات!</span>}
@@ -225,14 +228,14 @@ export default function StudentProfilePage() {
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Edit / View Profile Section */}
-          <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 lg:col-span-2">
+          <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 lg:col-span-2 bg-white/60 backdrop-blur-sm">
             <div className="flex items-center justify-between border-b border-emerald-50 pb-4 mb-6">
                 <h2 className="text-xl font-black text-emerald-950">البيانات الأساسية</h2>
                 {isEditing && <span className="text-xs font-bold text-emerald-600 underline">أنت الآن في وضع التعديل</span>}
             </div>
 
             {isEditing ? (
-                <form onSubmit={handleSave} className="space-y-6">
+                <form onSubmit={handleSave} className="space-y-6 text-right" dir="rtl">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 mr-2">اسم الطالب بالكامل</label>
@@ -241,7 +244,7 @@ export default function StudentProfilePage() {
                                 name="name"
                                 value={student.name}
                                 onChange={handleChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all font-bold"
                                 required
                             />
                         </div>
@@ -252,42 +255,31 @@ export default function StudentProfilePage() {
                                 name="guardian"
                                 value={student.guardian || ""}
                                 onChange={handleChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all font-bold"
                                 required
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 mr-2">تحديث الصورة الشخصية</label>
+                            <label className="text-xs font-bold text-slate-500 mr-2">العمر</label>
                             <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-xs outline-none transition-all"
+                                type="number"
+                                name="age"
+                                value={student.age}
+                                onChange={handleChange}
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all font-bold"
+                                required
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 mr-2">العمر</label>
-                                <input
-                                    type="number"
-                                    name="age"
-                                    value={student.age}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 mr-2">الدولة</label>
-                                <input
-                                    type="text"
-                                    name="country"
-                                    value={student.country}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                    required
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 mr-2">الدولة</label>
+                            <input
+                                type="text"
+                                name="country"
+                                value={student.country}
+                                onChange={handleChange}
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all font-bold"
+                                required
+                            />
                         </div>
                     </div>
 
@@ -298,7 +290,7 @@ export default function StudentProfilePage() {
                                 name="phone"
                                 value={student.phone}
                                 onChange={handleChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all font-bold"
                                 dir="ltr"
                                 required
                             />
@@ -314,19 +306,19 @@ export default function StudentProfilePage() {
                     </div>
                 </form>
             ) : (
-                <div className="space-y-8">
+                <div className="space-y-8 text-right">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">الاسم الكامل</span>
+                            <span className="text-xs font-bold text-slate-400">الاسم الكامل</span>
                             <span className="text-lg font-black text-emerald-950">{student.name}</span>
                         </div>
                         <div className="flex gap-12">
                             <div className="flex flex-col gap-1">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">العمر</span>
+                                <span className="text-xs font-bold text-slate-400">العمر</span>
                                 <span className="text-lg font-black text-emerald-950">{student.age} سنة</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">الدولة</span>
+                                <span className="text-xs font-bold text-slate-400">الدولة</span>
                                 <span className="text-lg font-black text-emerald-950">{student.country}</span>
                             </div>
                         </div>
@@ -334,23 +326,23 @@ export default function StudentProfilePage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">ولي الأمر</span>
+                            <span className="text-xs font-bold text-slate-400">ولي الأمر</span>
                             <span className="text-lg font-bold text-emerald-900">{student.guardian || "غير محدد"}</span>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">رقم الهاتف</span>
+                            <span className="text-xs font-bold text-slate-400">رقم الهاتف</span>
                             <span className="text-lg font-bold text-emerald-900" dir="ltr">{student.phone}</span>
                         </div>
                     </div>
 
                     <div className="pt-6 border-t border-emerald-50 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                          <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">البريد الإلكتروني</span>
-                            <span className="text-sm font-medium text-slate-600">{student.email}</span>
+                            <span className="text-xs font-bold text-slate-400">البريد الإلكتروني</span>
+                            <span className="text-sm font-bold text-slate-600">{student.email}</span>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest text-left">تاريخ الانضمام</span>
-                            <span className="text-sm font-bold text-emerald-700 text-left">{student.joinDate}</span>
+                            <span className="text-xs font-bold text-slate-400">تاريخ الانضمام</span>
+                            <span className="text-sm font-bold text-emerald-700">{student.joinDate}</span>
                         </div>
                     </div>
                 </div>
@@ -358,8 +350,8 @@ export default function StudentProfilePage() {
           </article>
 
           {/* Progress / Skills Sidebar */}
-          <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-            <h2 className="text-xl font-black text-emerald-950">مستوى المهارات</h2>
+          <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 bg-white/60 backdrop-blur-sm">
+            <h2 className="text-xl font-black text-emerald-950 text-right">مستوى المهارات</h2>
             <div className="mt-8 space-y-6">
               {[
                 { title: "القراءة", value: progressData.reading },
@@ -369,12 +361,12 @@ export default function StudentProfilePage() {
               ].map((skill) => {
                 const val = parseInt(skill.value) || 0;
                 return (
-                  <div key={skill.title}>
-                    <div className="mb-2 flex items-center justify-between text-xs sm:text-sm">
-                      <span className="font-bold text-emerald-900">{skill.title}</span>
-                      <span className="font-black text-emerald-600">{val}%</span>
+                  <div key={skill.title} dir="rtl">
+                    <div className="mb-2 flex items-center justify-between text-xs sm:text-sm font-bold">
+                      <span className="text-emerald-900">{skill.title}</span>
+                      <span className="text-emerald-600">{val}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-emerald-100/50">
+                    <div className="h-2 rounded-full bg-emerald-100/50 overflow-hidden">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-1000"
                         style={{ width: `${val}%` }}
@@ -385,9 +377,9 @@ export default function StudentProfilePage() {
               })}
             </div>
             
-            <div className="mt-10 pt-6 border-t border-emerald-50">
+            <div className="mt-10 pt-6 border-t border-emerald-50 text-right">
                 <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلم المسؤول</p>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 justify-end sm:justify-start">
                     <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white overflow-hidden">
                         {student.assignedTeacherImage ? (
                             <img src={student.assignedTeacherImage} alt={student.assignedTeacher} className="h-full w-full object-cover" />
@@ -406,17 +398,17 @@ export default function StudentProfilePage() {
           </article>
         </div>
 
-        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
+        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 text-right">
+            <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 bg-white/60 backdrop-blur-sm">
                 <h2 className="text-xl font-black text-emerald-950">الحصص القادمة</h2>
                 <div className="mt-6">
                 {upcomingSessions.length > 0 ? (
                     <ul className="space-y-3">
                     {upcomingSessions.map((session) => (
-                        <li key={`${session.course}-${session.date}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white/70 p-4 hover:shadow-md transition-all">
+                        <li key={`${session.course || session.title}-${session.date}`} className="flex flex-col sm:flex-row-reverse sm:items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white/70 p-4 hover:shadow-md transition-all text-right">
                         <div>
                             <p className="font-bold text-emerald-900">{session.course || session.title}</p>
-                            <p className="mt-1 text-sm text-slate-600">{session.date} - {session.time || "موعد مجدول"}</p>
+                            <p className="mt-1 text-sm text-slate-600 font-bold">{session.date} - {session.time || "موعد مجدول"}</p>
                         </div>
                         <a href={session.meetLink || "https://meet.google.com/new"} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:scale-105 active:scale-95">
                             دخول الحصة
@@ -433,20 +425,20 @@ export default function StudentProfilePage() {
                             </svg>
                         </div>
                         <p className="text-sm font-bold text-emerald-950">لا توجد حصص قادمة مجدولة</p>
-                        <p className="mt-1 text-xs text-slate-500">سيظهر الموعد هنا فور قيام المعلم بجدولة حصتك القادمة.</p>
+                        <p className="mt-1 text-xs text-slate-500 font-bold">سيظهر الموعد هنا فور قيام المعلم بجدولة حصتك القادمة.</p>
                     </div>
                 )}
                 </div>
             </article>
 
-            <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-                <h2 className="text-xl font-black text-emerald-950">آخر الملاحظات</h2>
+            <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 bg-white/60 backdrop-blur-sm">
+                <h2 className="text-xl font-black text-emerald-950">آخر الإنجازات</h2>
                 <div className="mt-6 flex flex-col gap-4">
                     {progressData.achievements ? (
                         <div className="space-y-3">
                             <p className="text-xs font-bold text-emerald-700 tracking-wider">الإنجازات الأخيرة</p>
                             {progressData.achievements?.split('\n').filter(a => a.trim()).map((item, idx) => (
-                                <div key={idx} className="flex gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-4 text-sm text-slate-700">
+                                <div key={idx} className="flex gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-4 text-sm text-slate-700 font-bold">
                                     <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                                     <span>{item}</span>
                                 </div>
@@ -454,7 +446,7 @@ export default function StudentProfilePage() {
                         </div>
                     ) : (
                         <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-8 text-center">
-                            <p className="text-sm text-slate-500 italic">لا توجد إنجازات مسجلة حالياً..</p>
+                            <p className="text-sm text-slate-500 italic font-bold">لا توجد إنجازات مسجلة حالياً..</p>
                         </div>
                     )}
                 </div>

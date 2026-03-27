@@ -1,18 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import * as db from "@/utils/db";
 
 const INITIAL_STATS = [
     { label: "إجمالي الحصص", value: "24", key: "total_sessions" },
     { label: "الطلاب النشطون", value: "18", key: "active_students" },
     { label: "الحصص اليوم", value: "4", key: "today_sessions" },
     { label: "التقييم العام", value: "4.8/5", key: "rating" },
-];
-
-const INITIAL_CLASSES = [
-    { id: 1, student: "أحمد محمود", course: "ركن القرآن", time: "10:00 صباحاً", meetLink: "https://meet.google.com/new" },
-    { id: 2, student: "منى علي", course: "المناهج الدراسية", time: "01:00 مساءً", meetLink: "https://meet.google.com/new" },
-    { id: 3, student: "عمر خالد", course: "اللغة العربية", time: "05:30 مساءً", meetLink: "https://meet.google.com/new" },
 ];
 
 const LATEST_NOTIFICATIONS = [
@@ -27,52 +22,64 @@ export default function TeacherDashboardPage() {
     const [teacherName, setTeacherName] = useState("المعلم");
 
     useEffect(() => {
-        const { getLocalUsers } = require("@/utils/local-db");
-        const allUsers = getLocalUsers();
+        const loadDashboardData = async () => {
+            const allUsers = await db.getLocalUsers();
 
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        let session = null;
-        if (sessionCookie) {
-            try {
-                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                const decoded = decodeURIComponent(atob(base64));
-                session = JSON.parse(decoded);
-                setTeacherName(session.name);
-            } catch (e) { console.error(e); }
-        }
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
+            let session = null;
+            if (sessionCookie) {
+                try {
+                    const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                    const decoded = decodeURIComponent(atob(base64));
+                    session = JSON.parse(decoded);
+                    setTeacherName(session.name);
+                } catch (e) { console.error(e); }
+            }
 
-        const teacherEmail = session?.email;
-        const myStudents = allUsers.filter(u => {
-            if (u.role !== "student") return false;
-            const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
-            return profile.assignedTeacherEmail === teacherEmail;
-        });
+            const teacherEmail = session?.email;
+            
+            // Map students assigned to this teacher
+            const myStudentsPromises = allUsers
+                .filter(u => u.role === "student")
+                .map(async (u) => {
+                    const profile = await db.getProfile("student", u.email);
+                    if (profile.assignedTeacherEmail === teacherEmail) {
+                        return u;
+                    }
+                    return null;
+                });
+            
+            const myStudents = (await Promise.all(myStudentsPromises)).filter(Boolean);
 
-        const teacherDoneCount = localStorage.getItem(`teacher_done_${session?.email}`) || "0";
+            const attendanceHistory = await db.getAttendanceHistory(teacherEmail);
+            const teacherDoneCount = attendanceHistory.length.toString();
 
-        setStats([
-            { label: "إجمالي الحصص", value: teacherDoneCount, key: "total_sessions" },
-            { label: "الطلاب النشطون", value: myStudents.length.toString(), key: "active_students" },
-            { label: "التقييم العام", value: "4.9/5", key: "rating" },
-            { label: "القسم", value: session?.course || "عام", key: "department" },
-        ]);
+            setStats([
+                { label: "إجمالي الحصص", value: teacherDoneCount, key: "total_sessions" },
+                { label: "الطلاب النشطون", value: myStudents.length.toString(), key: "active_students" },
+                { label: "التقييم العام", value: "4.9/5", key: "rating" },
+                { label: "القسم", value: session?.course || "عام", key: "department" },
+            ]);
 
-        if (myStudents.length > 0) {
-            const dynamicClasses = myStudents.slice(0, 3).map((s, idx) => ({
-                id: s.id || idx,
-                student: s.name,
-                course: s.course,
-                time: "10:00 صباحاً",
-                meetLink: "https://meet.google.com/new"
-            }));
-            setClasses(dynamicClasses);
-        } else {
-            setClasses([]);
-        }
+            if (myStudents.length > 0) {
+                const dynamicClasses = myStudents.slice(0, 3).map((s, idx) => ({
+                    id: s.id || idx,
+                    student: s.name,
+                    course: s.course,
+                    time: "10:00 صباحاً",
+                    meetLink: "https://meet.google.com/new"
+                }));
+                setClasses(dynamicClasses);
+            } else {
+                setClasses([]);
+            }
+        };
+
+        loadDashboardData();
     }, []);
 
-    const markAttendance = (id) => {
+    const markAttendance = async (id) => {
         const cookies = document.cookie.split("; ");
         const sessionCookie = cookies.find(c => c.startsWith("session="));
         let email = "guest";
@@ -84,15 +91,25 @@ export default function TeacherDashboardPage() {
             } catch {}
         }
 
-        const teacherDone = parseInt(localStorage.getItem(`teacher_done_${email}`) || "0");
-        localStorage.setItem(`teacher_done_${email}`, (teacherDone + 1).toString());
-
-        const adminSessions = parseInt(localStorage.getItem("admin_total_sessions") || "0");
-        localStorage.setItem("admin_total_sessions", (adminSessions + 1).toString());
+        // Logic for marking attendance directly from dashboard (quick action)
+        const targetClass = classes.find(c => c.id === id);
+        if (targetClass) {
+            const student = (await db.getLocalUsers()).find(u => u.name === targetClass.student);
+            if (student) {
+                await db.saveAttendanceSession({
+                    studentEmail: student.email,
+                    teacherEmail: email,
+                    date: new Date().toISOString().split('T')[0],
+                    status: "حاضر",
+                    topic: "حصة سريعة من لوحة التحكم",
+                    duration: "60 دقيقة"
+                });
+            }
+        }
 
         setClasses(prev => prev.filter(c => c.id !== id));
         
-        const Swal = require("sweetalert2");
+        const Swal = (await import("sweetalert2")).default;
         Swal.fire({
           title: "تم التسجيل!",
           text: "تم تسجيل الحضور بنجاح! سيتم تحديث الإحصائيات.",
@@ -118,7 +135,7 @@ export default function TeacherDashboardPage() {
                         <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                             لوحة تحكم المعلم
                         </p>
-                        <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">مرحباً بك في لوحة تحكمك</h1>
+                        <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">مرحباً بك يا {teacherName}</h1>
                         <p className="mt-2 text-sm text-slate-600">يمكنك هنا متابعة حصصك القادمة، نشاطات طلابك، ومؤشرات أدائك كمعلم.</p>
                     </div>
                 </div>

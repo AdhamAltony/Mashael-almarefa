@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import * as db from "@/utils/db";
 
 function AttendanceContent() {
     const router = useRouter();
@@ -24,247 +25,226 @@ function AttendanceContent() {
     });
 
     useEffect(() => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        
-        if (!sessionCookie) {
-            router.push("/auth/login");
-            return;
-        }
-
-        try {
-            const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-            const decoded = decodeURIComponent(atob(base64));
-            const sessionData = JSON.parse(decoded);
+        const loadPageData = async () => {
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
             
-            let deptName = sessionData.department || "";
-            if (!deptName && sessionData.course) {
-                if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
-                else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
-                else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
+            if (!sessionCookie) {
+                router.push("/auth/login");
+                return;
             }
-            setDepartment(deptName);
 
-            const { getLocalUsers } = require("@/utils/local-db");
-            const allUsers = getLocalUsers();
-            const filtered = allUsers.filter(u => 
-                u.role === "student" && 
-                (u.course === deptName || u.department === deptName)
-            );
-            setStudents(filtered);
-            
-            if (initialEmail) {
-                setFormData(prev => ({ ...prev, studentEmail: initialEmail }));
+            try {
+                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                const decoded = decodeURIComponent(atob(base64));
+                const sessionData = JSON.parse(decoded);
+                
+                let deptName = sessionData.department || "";
+                if (!deptName && sessionData.course) {
+                    if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
+                    else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
+                    else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
+                }
+                setDepartment(deptName);
+
+                const allUsers = await db.getLocalUsers();
+                const filtered = allUsers.filter(u => 
+                    u.role === "student" && 
+                    (u.course === deptName || u.department === deptName)
+                );
+                setStudents(filtered);
+                
+                if (initialEmail) {
+                    setFormData(prev => ({ ...prev, studentEmail: initialEmail }));
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
             }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
+        };
+
+        loadPageData();
     }, [router, initialEmail]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 1. Save attendance log for the student
-        const logs = JSON.parse(localStorage.getItem(`attendance_${formData.studentEmail}`) || "[]");
-        logs.push(formData);
-        localStorage.setItem(`attendance_${formData.studentEmail}`, JSON.stringify(logs));
-        
-        // 2. Increment Teacher Completed Sessions
         const cookies = document.cookie.split("; ");
         const sessionCookie = cookies.find(c => c.startsWith("session="));
+        let teacherEmail = "";
+        
         if (sessionCookie) {
             try {
                 const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
                 const decoded = decodeURIComponent(atob(base64));
                 const sessionData = JSON.parse(decoded);
-                const teacherEmail = sessionData.email;
-                
-                if (teacherEmail) {
-                    const currentCount = parseInt(localStorage.getItem(`teacher_done_${teacherEmail}`) || "0");
-                    localStorage.setItem(`teacher_done_${teacherEmail}`, (currentCount + 1).toString());
-                    
-                    // 3. Save to Teacher's individual history for Admin review
-                    const teacherHistory = JSON.parse(localStorage.getItem(`teacher_history_${teacherEmail}`) || "[]");
-                    const studentName = students.find(s => s.email === formData.studentEmail)?.name || "طالب غير معروف";
-                    teacherHistory.push({ ...formData, studentName, timestamp: new Date().getTime() });
-                    localStorage.setItem(`teacher_history_${teacherEmail}`, JSON.stringify(teacherHistory));
-
-                    // Also update Admin global sessions count
-                    const adminTotal = parseInt(localStorage.getItem("admin_total_sessions") || "0");
-                    localStorage.setItem("admin_total_sessions", (adminTotal + 1).toString());
-                }
+                teacherEmail = sessionData.email;
             } catch (err) { console.error("Session sync error:", err); }
         }
 
+        const student = students.find(s => s.email === formData.studentEmail);
+        
+        // 1. Unified Save (Replaces multiple localStorage legacy calls)
+        await db.saveAttendanceSession({
+            ...formData,
+            teacherEmail,
+            studentName: student?.name || "طالب غير معروف",
+            courseName: department
+        });
+
+        // 2. Legacy Support (Maintain old keys for backward compatibility in components not yet fully migrated)
+        const logs = JSON.parse(localStorage.getItem(`attendance_${formData.studentEmail}`) || "[]");
+        logs.push(formData);
+        localStorage.setItem(`attendance_${formData.studentEmail}`, JSON.stringify(logs));
+        
+        if (teacherEmail) {
+            const currentCount = parseInt(localStorage.getItem(`teacher_done_${teacherEmail}`) || "0");
+            localStorage.setItem(`teacher_done_${teacherEmail}`, (currentCount + 1).toString());
+            
+            const teacherHistory = JSON.parse(localStorage.getItem(`teacher_history_${teacherEmail}`) || "[]");
+            teacherHistory.push({ ...formData, studentName: student?.name || "طالب غير معروف", timestamp: new Date().getTime() });
+            localStorage.setItem(`teacher_history_${teacherEmail}`, JSON.stringify(teacherHistory));
+
+            const adminTotal = parseInt(localStorage.getItem("admin_total_sessions") || "0");
+            localStorage.setItem("admin_total_sessions", (adminTotal + 1).toString());
+        }
+
         setSaved(true);
-        setTimeout(() => {
-            setSaved(false);
-            router.push("/teacher/students");
-        }, 1500);
+        setTimeout(() => setSaved(false), 3000);
     };
 
-    if (loading) return <div className="p-20 text-center text-emerald-900 font-bold">جاري التحميل...</div>;
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-slate-50 font-sans">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+            </div>
+        );
+    }
 
     return (
-        <main dir="rtl" className="relative flex min-h-[100dvh] flex-col overflow-x-clip text-emerald-950 font-sans">
-            {/* Soft Gradient Background */}
-            <div className="fixed inset-0 z-[-1] bg-[#fcfdfd]">
-                <div className="absolute top-0 right-0 h-[400px] w-[400px] -translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-50 blur-[100px] pointer-events-none" />
-                <div className="absolute bottom-0 left-0 h-[500px] w-[500px] translate-x-1/3 translate-y-1/4 rounded-full bg-emerald-50/50 blur-[120px] pointer-events-none" />
+        <div className="min-h-screen bg-slate-50 font-sans p-4 sm:p-20" dir="rtl">
+            <header className="mb-12 text-center">
+                <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700 shadow-sm border border-emerald-200/50">
+                    مركز تسجيل الحضور
+                </span>
+                <h1 className="text-3xl font-black text-slate-900 sm:text-5xl">تحضير الطلاب</h1>
+                <p className="mt-4 text-slate-500 font-medium">سجل بيانات الحصة وأداء الطالب بدقة.</p>
+            </header>
+
+            <div className="mx-auto max-w-2xl">
+                <div className="bg-white rounded-[3rem] p-10 shadow-2xl shadow-slate-200/50 border border-slate-100">
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="col-span-1">
+                                <label className="block text-sm font-black text-slate-600 mb-3">اختر الطالب</label>
+                                <select 
+                                    value={formData.studentEmail}
+                                    onChange={(e) => setFormData({...formData, studentEmail: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold appearance-none cursor-pointer"
+                                    required
+                                >
+                                    <option value="">اختر من القائمة...</option>
+                                    {students.map(s => (
+                                        <option key={s.id} value={s.email}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="col-span-1">
+                                <label className="block text-sm font-black text-slate-600 mb-3">تاريخ الحصة</label>
+                                <input 
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-black text-slate-600 mb-3">حالة الحضور</label>
+                                <select 
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold appearance-none cursor-pointer"
+                                >
+                                    <option value="حاضر">حاضر ✅</option>
+                                    <option value="غائب">غائب ❌</option>
+                                    <option value="غائب بعذر">غائب بعذر ⏳</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-black text-slate-600 mb-3">تقييم الطالب</label>
+                                <select 
+                                    value={formData.rating}
+                                    onChange={(e) => setFormData({...formData, rating: e.target.value})}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold appearance-none cursor-pointer"
+                                >
+                                    <option value="10 / 10">ممتاز جداً 10/10</option>
+                                    <option value="9 / 10">ممتاز 9/10</option>
+                                    <option value="8 / 10">جيد جداً 8/10</option>
+                                    <option value="7 / 10">جيد 7/10</option>
+                                    <option value="6 / 10">يحتاج تحسين 6/10</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-black text-slate-600 mb-3">موضوع الحصة</label>
+                            <input 
+                                type="text"
+                                placeholder="مثال: سورة البقرة - الوجه الخامس"
+                                value={formData.topic}
+                                onChange={(e) => setFormData({...formData, topic: e.target.value})}
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-black text-slate-600 mb-3">ملاحظات إضافية</label>
+                            <textarea 
+                                placeholder="اكتب أي ملاحظات للولي الأمر هنا..."
+                                rows="4"
+                                value={formData.notes}
+                                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold resize-none"
+                            ></textarea>
+                        </div>
+
+                        <div className="pt-4">
+                            <button 
+                                type="submit"
+                                className="w-full bg-emerald-600 text-white rounded-2xl py-5 font-black text-lg transition-all shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 flex items-center justify-center gap-3"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                تسجيل البيانات الآن
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <section className="relative z-10 flex flex-1 flex-col px-4 pt-10 pb-16 sm:px-6">
-                <div className="mx-auto w-full max-w-4xl">
-                    <header className="mb-8 text-center">
-                        <span className="mb-3 inline-block rounded-full bg-emerald-50 px-4 py-1.5 text-xs font-bold text-emerald-600 border border-emerald-100/50">
-                            منصة مشاعل المعرفة - {department}
-                        </span>
-                        <h1 className="mb-3 text-2xl font-bold text-emerald-950 sm:text-3xl">تسجيل حضور ومتابعة طالب</h1>
-                        <p className="mx-auto max-w-lg text-sm text-slate-500 font-medium">قم بتعبئة تقرير الحصة بدقة لضمان متابعة ولي الأمر لتقدم الطالب.</p>
-                    </header>
-
-                    <div className="modern-card overflow-hidden rounded-3xl border border-white bg-white/70 shadow-xl shadow-emerald-900/5 p-8 sm:p-10 backdrop-blur-md">
-                        <form onSubmit={handleSubmit} className="space-y-8" dir="rtl">
-                            {/* Row 1: Student & Date */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">اسم الطالب <span className="text-red-500">*</span></label>
-                                    <select 
-                                        value={formData.studentEmail} 
-                                        onChange={(e) => setFormData({...formData, studentEmail: e.target.value})}
-                                        className="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3.5 text-base font-medium text-emerald-950 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/5 outline-none transition-all"
-                                        required
-                                    >
-                                        <option value="">-- اختر الطالب --</option>
-                                        {students.map(s => <option key={s.email} value={s.email}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">تاريخ الحصة <span className="text-red-500">*</span></label>
-                                    <input 
-                                        type="date" 
-                                        value={formData.date} 
-                                        onChange={(e) => setFormData({...formData, date: e.target.value})} 
-                                        className="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3.5 text-base font-medium text-emerald-900 focus:border-emerald-400 outline-none transition-all" 
-                                        required 
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Row 2: Status & Duration & Topic */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">حالة الحضور <span className="text-red-500">*</span></label>
-                                    <div className="flex gap-2">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setFormData({...formData, status: 'حاضر'})}
-                                            className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${formData.status === 'حاضر' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
-                                        >
-                                            حاضر
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setFormData({...formData, status: 'غائب'})}
-                                            className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all border ${formData.status === 'غائب' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
-                                        >
-                                            غائب
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">المدة <span className="text-red-500">*</span></label>
-                                    <select 
-                                        value={formData.duration} 
-                                        onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                                        className="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3.5 text-base font-medium text-emerald-900 focus:border-emerald-400 outline-none"
-                                        required
-                                    >
-                                        <option value="30 دقيقة">30 دقيقة</option>
-                                        <option value="45 دقيقة">45 دقيقة</option>
-                                        <option value="60 دقيقة">ساعة</option>
-                                        <option value="90 دقيقة">ساعة ونصف</option>
-                                        <option value="120 دقيقة">ساعتان</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">موضوع الحلقة <span className="text-red-500">*</span></label>
-                                    <input 
-                                        type="text"
-                                        value={formData.topic} 
-                                        onChange={(e) => setFormData({...formData, topic: e.target.value})}
-                                        placeholder="مثلاً: سورة البقرة، النحو، الرياضيات..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3.5 text-base font-medium text-emerald-950 focus:border-emerald-400 outline-none transition-all shadow-sm placeholder:text-slate-300"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Row 3: Rating & Notes */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">تقييم (10/)</label>
-                                    <select 
-                                        value={formData.rating} 
-                                        onChange={(e) => setFormData({...formData, rating: e.target.value})}
-                                        className="w-full rounded-xl border border-slate-200 bg-white/50 px-4 py-3.5 text-center font-bold text-amber-600 focus:border-amber-400 outline-none"
-                                        required
-                                    >
-                                        {[10,9,8,7,6,5,4,3,2,1].map(num => <option key={num} value={`${num} / 10`}>{num} / 10</option>)}
-                                    </select>
-                                </div>
-                                <div className="md:col-span-3 space-y-2">
-                                    <label className="text-sm font-bold text-emerald-900 pr-1">ملاحظات التقرير لولي الأمر</label>
-                                    <textarea 
-                                        value={formData.notes} 
-                                        onChange={(e) => setFormData({...formData, notes: e.target.value})} 
-                                        rows={3} 
-                                        placeholder="اكتب نبذة مختصرة عن أداء الطالب اليوم..." 
-                                        className="w-full rounded-xl border border-slate-200 bg-white/50 px-5 py-3.5 text-base font-medium text-emerald-950 focus:border-emerald-400 outline-none resize-none"
-                                    ></textarea>
-                                </div>
-                            </div>
-
-                            <div className="pt-6 border-t border-emerald-50 flex items-center justify-end gap-3">
-                                <button 
-                                    type="button" 
-                                    onClick={() => router.back()}
-                                    className="px-8 py-3.5 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                                >
-                                    إلغاء التغييرات
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    className="rounded-xl bg-emerald-600 px-10 py-3.5 text-base font-bold text-white shadow-lg shadow-emerald-600/10 transition-all hover:bg-emerald-500 active:scale-95"
-                                >
-                                    حفظ التقرير وإرساله
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </section>
-
             {saved && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-emerald-950/5 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="rounded-2xl bg-white p-10 text-center shadow-xl border border-emerald-50">
-                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-                            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                        </div>
-                        <h3 className="mb-1 text-xl font-bold text-emerald-950">تم الحفظ بنجاح</h3>
-                        <p className="text-sm text-slate-500 font-medium tracking-tight">جاري العودة لقائمة الطلاب...</p>
+                <div className="fixed bottom-10 left-10 z-[100] animate-in slide-in-from-left-10 duration-500">
+                    <div className="bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 font-black">
+                        <span className="text-2xl">⚡</span>
+                        تم تسجيل الحضور بنجاح وجاري إبلاغ الإدارة
                     </div>
                 </div>
             )}
-        </main>
+        </div>
     );
 }
 
-export default function TeacherAttendancePage() {
+export default function AttendancePage() {
     return (
-        <Suspense fallback={<div className="p-20 text-center text-emerald-900 font-bold">جاري التحميل...</div>}>
+        <Suspense fallback={
+            <div className="flex h-screen items-center justify-center bg-slate-50 font-sans">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+            </div>
+        }>
             <AttendanceContent />
         </Suspense>
     );

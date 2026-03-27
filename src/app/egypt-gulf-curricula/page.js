@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useCallback, useEffect } from "react";
 import TeacherNavbar from "../teacher/teacher-navbar";
 import Footer from "@/components/footer";
+import * as db from "@/utils/db";
 
 // ─── Static Data (module-level, never re-created) ─────────────────────────────
 
@@ -351,11 +352,6 @@ function SuccessMessage({ onReset }) {
   );
 }
 
-// Navbar removed since we're using TeacherNavbar
-
-// ─── FooterSection ─────────────────────────────────────────────────────────────
-
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EgyptGulfCurriculaSessionPage() {
@@ -366,12 +362,13 @@ export default function EgyptGulfCurriculaSessionPage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
-    const { getLocalUsers } = require("@/utils/local-db");
-    const all = getLocalUsers();
-    setStudents(all.filter(u => u.role === "student" && u.course === "المناهج الدراسية"));
+    const loadStudents = async () => {
+      const all = await db.getLocalUsers();
+      setStudents(all.filter(u => u.role === "student" && u.course === "المناهج الدراسية"));
+    };
+    loadStudents();
   }, []);
 
-  // Stable references — won't trigger child re-renders on each parent render
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData((prev) =>
@@ -401,44 +398,52 @@ export default function EgyptGulfCurriculaSessionPage() {
       e.preventDefault();
       if (!validate()) return;
       setIsSubmitting(true);
-      // Simulated network request
-      setTimeout(() => {
-        const studentEmail = formData.student;
-        const savedProgress = localStorage.getItem(`progress_${studentEmail}`);
-        let progress = savedProgress ? JSON.parse(savedProgress) : {
-          attendance: "95", rating: "8.5", hours: "20", nextLesson: "السبت القادم 4م",
-          reading: "80", writing: "70", listening: "90", conversation: "85",
-          achievements: "", notes: ""
-        };
+      
+      const studentEmail = formData.student;
 
-        if (formData.attendance === "حاضر") {
-          const newHours = (parseFloat(progress.hours) || 0) + (parseInt(formData.minutes) / 60);
-          const newRating = ((parseFloat(progress.rating) || 0) + parseFloat(formData.rating)) / 2;
-          progress.hours = newHours.toFixed(1);
-          progress.rating = newRating.toFixed(1);
-        }
+      // Get session email from cookies
+      const cookies = document.cookie.split("; ");
+      const sessionCookie = cookies.find(c => c.startsWith("session="));
+      let teacherEmail = "guest";
+      if (sessionCookie) {
+        try {
+          const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+          const decoded = decodeURIComponent(atob(base64));
+          teacherEmail = JSON.parse(decoded).email;
+        } catch {}
+      }
 
-        localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(progress));
+      await db.saveAttendanceSession({
+        studentEmail,
+        teacherEmail,
+        date: formData.date,
+        status: formData.attendance,
+        topic: formData.topic,
+        rating: formData.rating,
+        duration: `${formData.minutes} دقيقة`,
+        notes: formData.notes
+      });
 
-        const savedSessions = localStorage.getItem(`sessions_${studentEmail}`);
-        const sessions = savedSessions ? JSON.parse(savedSessions) : [];
-        sessions.unshift({
-          title: formData.topic,
-          date: formData.date,
-          status: formData.attendance,
-          rating: formData.rating,
-          hours: (parseInt(formData.minutes) || 0) / 60,
-          notes: formData.notes,
-          timestamp: new Date().toISOString()
-        });
-        localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(sessions));
+      // Update student progress profile if needed
+      const progress = await db.getProfile("student_progress", studentEmail) || {
+        attendance: "95", rating: "8.5", hours: "20", nextLesson: "قريباً",
+        reading: "80", writing: "70", listening: "90", conversation: "85",
+        achievements: "", notes: ""
+      };
 
-        setIsSubmitting(false);
-        setIsSuccess(true);
-        setFormData(EMPTY_FORM);
-      }, 1500);
+      if (formData.attendance === "حاضر") {
+        const newHours = (parseFloat(progress.hours) || 0) + (parseInt(formData.minutes) / 60);
+        const newRating = ((parseFloat(progress.rating) || 0) + parseFloat(formData.rating)) / 2;
+        progress.hours = newHours.toFixed(1);
+        progress.rating = newRating.toFixed(1);
+      }
+      await db.saveProfile("student_progress", studentEmail, progress);
+
+      setIsSubmitting(false);
+      setIsSuccess(true);
+      setFormData(EMPTY_FORM);
     },
-    [validate]
+    [validate, formData]
   );
 
   const handleReset = useCallback(() => {
@@ -451,9 +456,7 @@ export default function EgyptGulfCurriculaSessionPage() {
       dir="rtl"
       className="relative flex min-h-[100dvh] flex-col overflow-x-clip text-emerald-950 font-sans"
     >
-      {/* Light Gradient Background matching the Identity/Audience Sections */}
       <div className="fixed inset-0 z-[-1] bg-gradient-to-b from-[#f8fbfb] via-[#f2f8f8] to-[#eef5f5]">
-        {/* Decorative subtle blurs for depth */}
         <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-x-1/4 -translate-y-1/4 rounded-full bg-emerald-100/60 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 h-[600px] w-[600px] translate-x-1/3 translate-y-1/4 rounded-full bg-emerald-50/80 blur-3xl pointer-events-none" />
       </div>
@@ -466,10 +469,8 @@ export default function EgyptGulfCurriculaSessionPage() {
         showCtaWithSession={true}
       />
 
-      {/* ── Main Content ── */}
       <section className="relative z-10 flex flex-1 flex-col justify-center px-4 pt-28 pb-16 sm:px-6 sm:pt-32 sm:pb-24">
         <div className="mx-auto w-full max-w-3xl">
-          {/* Page Header */}
           <header className="mb-10 text-center">
             <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700 shadow-sm border border-emerald-200/50">
               بوابة المعلمين - المناهج الدراسية
@@ -482,7 +483,6 @@ export default function EgyptGulfCurriculaSessionPage() {
             </p>
           </header>
 
-          {/* Form Card (Modern Light Theme) */}
           <div className="modern-card relative overflow-hidden rounded-[2rem] p-6 shadow-2xl shadow-emerald-900/5 sm:p-10 border border-white/60">
             {isSuccess ? (
               <SuccessMessage onReset={handleReset} />

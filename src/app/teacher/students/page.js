@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-
-const NAV_LINKS = [
-    { label: "طلاب القسم", href: "/teacher/students" },
-    { label: "الملف الشخصي", href: "/teacher/profile" },
-    { label: "تسجيل حضور", href: "/teacher/attendance" },
-];
+import * as db from "@/utils/db";
 
 function ProgressModal({ student, onClose, onSave }) {
     const [progress, setProgress] = useState({
@@ -28,11 +23,15 @@ function ProgressModal({ student, onClose, onSave }) {
     const [newSession, setNewSession] = useState({ date: "", time: "", meetLink: "" });
 
     useEffect(() => {
-        const savedProgress = localStorage.getItem(`progress_${student.email}`);
-        if (savedProgress) setProgress(JSON.parse(savedProgress));
+        const loadProgressData = async () => {
+            const savedProgress = await db.getProfile("student_progress", student.email);
+            if (savedProgress && Object.keys(savedProgress).length > 0) setProgress(savedProgress);
 
-        const savedSessions = localStorage.getItem(`sessions_${student.email}`);
-        if (savedSessions) setSessions(JSON.parse(savedSessions));
+            const savedSessions = await db.getProfile("student_sessions", student.email);
+            if (savedSessions && Array.isArray(savedSessions)) setSessions(savedSessions);
+            else if (savedSessions && typeof savedSessions === 'object') setSessions([]); // Handle non-array if any
+        };
+        loadProgressData();
     }, [student.email]);
 
     const handleAddSession = () => {
@@ -46,10 +45,10 @@ function ProgressModal({ student, onClose, onSave }) {
         setSessions(prev => prev.filter(s => s.id !== id));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        localStorage.setItem(`sessions_${student.email}`, JSON.stringify(sessions));
-        onSave(student.email, progress);
+        await db.saveProfile("student_sessions", student.email, sessions);
+        await onSave(student.email, progress);
     };
 
     return (
@@ -71,7 +70,7 @@ function ProgressModal({ student, onClose, onSave }) {
                             <h3 className="font-bold text-emerald-800 border-b border-emerald-100 pb-2 mt-6">جدولة الحصص القادمة</h3>
 
                             <div className="space-y-2">
-                                {sessions.map(s => (
+                                {Array.isArray(sessions) && sessions.map(s => (
                                     <div key={s.id} className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-xs">
                                         <div className="flex flex-col">
                                             <span className="font-bold text-emerald-900">{s.title}</span>
@@ -95,7 +94,7 @@ function ProgressModal({ student, onClose, onSave }) {
 
                             <div className="pt-2">
                                 <label className="block text-xs font-bold text-slate-500 mb-1">أبرز الملاحظات والإنجازات</label>
-                                <textarea value={progress.achievements} onChange={(e) => setProgress({ ...progress, achievements: e.target.value })} rows={3} placeholder="اكتب ملاحظات وإنجازات الطالب هنا..." className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500 resize-none" />
+                                <textarea value={progress.achievements || ""} onChange={(e) => setProgress({ ...progress, achievements: e.target.value })} rows={3} placeholder="اكتب ملاحظات وإنجازات الطالب هنا..." className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-2 text-sm outline-none focus:border-emerald-500 resize-none" />
                             </div>
                         </div>
 
@@ -110,11 +109,11 @@ function ProgressModal({ student, onClose, onSave }) {
                                         <input
                                             type="range"
                                             min="0" max="100"
-                                            value={progress[skill]}
+                                            value={progress[skill] || 0}
                                             onChange={(e) => setProgress({ ...progress, [skill]: e.target.value })}
                                             className="h-2 flex-1 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                                         />
-                                        <span className="text-xs font-bold text-emerald-600 w-8">{progress[skill]}%</span>
+                                        <span className="text-xs font-bold text-emerald-600 w-8">{progress[skill] || 0}%</span>
                                     </div>
                                 </div>
                             ))}
@@ -155,75 +154,69 @@ export default function TeacherStudentsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
+        const loadStudents = async () => {
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
 
-        if (!sessionCookie) {
-            router.push("/auth/login");
-            return;
-        }
-
-        try {
-            const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-            const decoded = decodeURIComponent(atob(base64));
-            const sessionData = JSON.parse(decoded);
-
-            let deptName = sessionData.department || "";
-            if (!deptName && sessionData.course) {
-                if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
-                else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
-                else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
+            if (!sessionCookie) {
+                router.push("/auth/login");
+                return;
             }
-            setDepartment(deptName);
 
-            const teacherEmail = sessionData.email;
-            const { getLocalUsers } = require("@/utils/local-db");
-            const allUsers = getLocalUsers();
-            const filtered = allUsers.filter(u => {
-                if (u.role !== "student") return false;
-                const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
-                return profile.assignedTeacherEmail === teacherEmail;
-            });
+            try {
+                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                const decoded = decodeURIComponent(atob(base64));
+                const sessionData = JSON.parse(decoded);
 
-            // Fetch images from student profiles
-            const studentsWithImages = filtered.map(s => {
-                const profile = localStorage.getItem(`student_profile_${s.email}`);
-                if (profile) {
-                    const parsed = JSON.parse(profile);
-                    return { ...s, image: parsed.image };
+                let deptName = sessionData.department || "";
+                if (!deptName && sessionData.course) {
+                    if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
+                    else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
+                    else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
                 }
-                return s;
-            });
+                setDepartment(deptName);
 
-            setStudents(studentsWithImages);
-        } catch (e) {
-            console.error("Session error", e);
-        } finally {
-            setLoading(false);
-        }
+                const teacherEmail = sessionData.email;
+                const allUsers = await db.getLocalUsers();
+                
+                // Fetch profiles asynchronously for filtering
+                const studentPromises = allUsers.filter(u => u.role === "student").map(async (s) => {
+                    const profile = await db.getProfile("student", s.email);
+                    if (profile.assignedTeacherEmail === teacherEmail) {
+                        return { ...s, image: profile.image };
+                    }
+                    return null;
+                });
+                
+                const filtered = (await Promise.all(studentPromises)).filter(Boolean);
+                setStudents(filtered);
+            } catch (e) {
+                console.error("Session error", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadStudents();
     }, [router]);
 
-    const handleSave = (studentEmail, progress) => {
-        localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(progress));
+    const handleSave = async (studentEmail, progress) => {
+        await db.saveProfile("student_progress", studentEmail, progress);
         alert("تم حفظ بيانات التقدم بنجاح!");
         setSelectedStudent(null);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (studentToDelete) {
-            // Instead of deleting the user, we just unsubscribe them from this teacher
-            const profileKey = `student_profile_${studentToDelete.email}`;
-            const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
-            
+            // Unsubscribe them from this teacher
+            const profile = await db.getProfile("student", studentToDelete.email);
             const updatedProfile = { 
                 ...profile, 
                 assignedTeacher: "", 
                 assignedTeacherEmail: "" 
             };
+            await db.saveProfile("student", studentToDelete.email, updatedProfile);
             
-            localStorage.setItem(profileKey, JSON.stringify(updatedProfile));
-            
-            // Re-sync UI
             setStudents(prev => prev.filter(s => s.id !== studentToDelete.id));
             setStudentToDelete(null);
             
@@ -339,7 +332,6 @@ export default function TeacherStudentsPage() {
                 />
             )}
 
-            {/* Admin-Style Delete Confirmation */}
             {studentToDelete && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-emerald-950/40 p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="modern-card w-full max-w-sm rounded-[2rem] border border-white bg-white p-8 text-center shadow-2xl animate-in zoom-in-95">
@@ -348,7 +340,7 @@ export default function TeacherStudentsPage() {
                         </div>
                         <h2 className="mb-2 text-2xl font-black text-slate-800">هل أنت متأكد؟</h2>
                         <p className="mb-8 text-sm text-slate-500">
-                            لن تتمكن من التراجع عن عملية حذفك للطالب {studentToDelete.name} بأي شكل!
+                            سيتم إزالة الطالب {studentToDelete.name} من قائمة طلابك.
                         </p>
 
                         <div className="flex gap-3">

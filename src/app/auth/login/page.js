@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import * as db from "@/utils/db";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -20,9 +21,7 @@ export default function LoginPage() {
       return;
     }
 
-    const { getLocalUsers } = require("@/utils/local-db");
-    const validUsers = getLocalUsers();
-
+    const validUsers = await db.getLocalUsers();
     const userByEmail = validUsers.find(u => u.email === email);
 
     if (!userByEmail) {
@@ -46,7 +45,7 @@ export default function LoginPage() {
     const cookieOptions = rememberMe ? "max-age=2592000; SameSite=Strict" : "SameSite=Strict";
     // Include all user fields in the session to ensure profile parts show up correctly
     const sessionData = { ...userByEmail };
-    // Remove sensitive data before putting in cookie if desired, but for local-first it's fine
+    // Remove sensitive data before putting in cookie
     delete sessionData.password;
     
     const encodedSession = btoa(encodeURIComponent(JSON.stringify(sessionData)));
@@ -72,7 +71,6 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          {/* Role Selection using beautiful radio buttons */}
           <div className="flex gap-4">
             <label className="relative flex-1 cursor-pointer">
               <input
@@ -123,7 +121,6 @@ export default function LoginPage() {
                 </div>
               )}
             </label>
-
           </div>
 
           <div>

@@ -1,37 +1,40 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import * as db from "@/utils/db";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState([
-    { label: "إجمالي الطلاب", value: "248", delta: "+12 هذا الأسبوع", key: "total_students" },
-    { label: "المعلمون النشطون", value: "18", delta: "+2 هذا الشهر", key: "active_teachers" },
-    { label: "الحصص المكتملة", value: "34", delta: "تحديث تلقائي", key: "admin_total_sessions" },
+    { label: "إجمالي الطلاب", value: "0", delta: "تحديث تلقائي", key: "total_students" },
+    { label: "المعلمون النشطون", value: "0", delta: "تحديث تلقائي", key: "active_teachers" },
+    { label: "الحصص المكتملة", value: "0", delta: "تحديث تلقائي", key: "admin_total_sessions" },
   ]);
 
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
 
   useEffect(() => {
-    const { getLocalUsers } = require("@/utils/local-db");
-    const allUsers = getLocalUsers();
-    
-    const totalStudents = allUsers.filter(u => u.role === "student").length;
-    const totalTeachers = allUsers.filter(u => u.role === "teacher").length;
-    const savedSessions = localStorage.getItem("admin_total_sessions") || "0";
+    const loadStats = async () => {
+        const allUsers = await db.getLocalUsers();
+        
+        const totalStudents = allUsers.filter(u => u.role === "student").length;
+        const totalTeachers = allUsers.filter(u => u.role === "teacher").length;
+        const savedSessions = localStorage.getItem("admin_total_sessions") || "0";
 
-    setStats([
-      { label: "إجمالي الطلاب", value: totalStudents.toString(), delta: "تحديث تلقائي", key: "total_students" },
-      { label: "المعلمون النشطون", value: totalTeachers.toString(), delta: "تحديث تلقائي", key: "active_teachers" },
-      { label: "الحصص المكتملة", value: savedSessions, delta: "تحديث تلقائي", key: "admin_total_sessions" },
-    ]);
+        setStats([
+          { label: "إجمالي الطلاب", value: totalStudents.toString(), delta: "تحديث تلقائي", key: "total_students" },
+          { label: "المعلمون النشطون", value: totalTeachers.toString(), delta: "تحديث تلقائي", key: "active_teachers" },
+          { label: "الحصص المكتملة", value: savedSessions, delta: "تحديث تلقائي", key: "admin_total_sessions" },
+        ]);
 
-    const savedTasks = localStorage.getItem("admin_tasks");
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    } else {
-      setTasks([]);
-    }
+        const savedTasks = localStorage.getItem("admin_tasks");
+        if (savedTasks) {
+          setTasks(JSON.parse(savedTasks));
+        } else {
+          setTasks([]);
+        }
+    };
+    loadStats();
   }, []);
 
   const addTask = (e) => {
@@ -51,35 +54,35 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="site-container py-10" dir="rtl">
-      <section className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 sm:p-8">
+      <section className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 sm:p-8 bg-white/60 backdrop-blur-sm">
         <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
           لوحة تحكم الإدارة
         </p>
         <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">نظرة عامة على المنصة</h1>
-        <p className="mt-2 text-sm text-slate-600">متابعة مؤشرات الأداء، المهام التشغيلية، والقرارات الإدارية في بوابة الإدارة.</p>
+        <p className="mt-2 text-sm text-slate-600 font-bold">متابعة مؤشرات الأداء، المهام التشغيلية، والقرارات الإدارية في بوابة الإدارة.</p>
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
-          <article key={stat.label} className="modern-card rounded-2xl border border-emerald-100/70 p-5 shadow-lg shadow-emerald-900/5 hover:-translate-y-1 transition-transform">
+          <article key={stat.label} className="modern-card rounded-2xl border border-emerald-100/70 p-5 shadow-lg shadow-emerald-900/5 hover:-translate-y-1 transition-transform bg-white/60 backdrop-blur-sm">
             <p className="text-sm font-bold text-emerald-700">{stat.label}</p>
             <p className="mt-1 text-3xl font-black text-emerald-950">{stat.value}</p>
-            <p className="mt-1 text-xs text-slate-600">{stat.delta}</p>
+            <p className="mt-1 text-xs text-slate-600 font-bold">{stat.delta}</p>
           </article>
         ))}
       </section>
 
       <section className="mt-6">
-        <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 bg-white/60 backdrop-blur-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-right">
             <h2 className="text-xl font-black text-emerald-950">المهام المعلّقة</h2>
-            <form onSubmit={addTask} className="flex gap-2">
+            <form onSubmit={addTask} className="flex gap-2" dir="rtl">
               <input
                 type="text"
                 placeholder="أضف مهمة جديدة..."
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
-                className="rounded-xl border border-emerald-100 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500"
+                className="rounded-xl border border-emerald-100 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500 font-bold"
               />
               <button
                 type="submit"
@@ -90,10 +93,10 @@ export default function AdminDashboardPage() {
             </form>
           </div>
           
-          <ul className="mt-6 space-y-3 text-sm text-slate-700">
+          <ul className="mt-6 space-y-3 text-sm text-slate-700 text-right">
             {tasks.length > 0 ? tasks.map((task, index) => (
               <li key={index} className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-white/70 p-4 transition-colors hover:bg-emerald-50/50">
-                <span>{task}</span>
+                <span className="font-bold">{task}</span>
                 <button
                   onClick={() => removeTask(index)}
                   className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all"
@@ -105,7 +108,7 @@ export default function AdminDashboardPage() {
                 </button>
               </li>
             )) : (
-              <p className="py-6 text-center text-slate-500 italic">لا توجد مهام معلقة.. كل شيء تحت السيطرة!</p>
+              <p className="py-6 text-center text-slate-500 italic font-bold">لا توجد مهام معلقة.. كل شيء تحت السيطرة!</p>
             )}
           </ul>
         </article>

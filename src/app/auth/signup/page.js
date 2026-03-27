@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { saveUser } from "@/utils/local-db";
+import * as db from "@/utils/db";
 
 export default function SignupPage() {
     const [role, setRole] = useState("student");
@@ -66,7 +66,7 @@ export default function SignupPage() {
 
     const [error, setError] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
@@ -95,8 +95,6 @@ export default function SignupPage() {
             return;
         }
 
-        // Persist user locally
-        const { saveUser } = require("@/utils/local-db");
         const userData = {
             name: formData.name,
             email: formData.email,
@@ -112,7 +110,7 @@ export default function SignupPage() {
             guardianPhone: formData.guardianPhone || "",
             countryCode: formData.countryCode || "+20"
         };
-        const savedUserResult = saveUser(userData);
+        const savedUserResult = await db.saveUser(userData);
 
         if (!savedUserResult) {
           Swal.fire({
@@ -125,8 +123,11 @@ export default function SignupPage() {
           return;
         }
 
-        const base64 = btoa(encodeURIComponent(JSON.stringify(userData)));
+        const sessionData = { ...userData };
+        delete sessionData.password; // Important for security
+        const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
         document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
+        document.cookie = `userRole=${userData.role}; path=/; max-age=86400`;
 
         Swal.fire({
           title: "تم!",
@@ -155,7 +156,6 @@ export default function SignupPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-                    {/* Role Selection using beautiful radio buttons */}
                     <div className="flex gap-4">
                         <label className="relative flex-1 cursor-pointer">
                             <input
@@ -208,7 +208,6 @@ export default function SignupPage() {
                         </label>
                     </div>
 
-                    {/* Common Field: Department Selection */}
                     <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
                         <div className="space-y-3">
                             <label className="block text-sm font-bold text-emerald-900 border-r-4 border-emerald-500 pr-3">
@@ -233,7 +232,6 @@ export default function SignupPage() {
                             </div>
                         </div>
 
-                        {/* Common: Subjects Selection (If Curricula) */}
                         {formData.department === "curricula" && (
                             <div className="space-y-3 animate-in fade-in zoom-in-95 duration-300">
                                 <label className="block text-sm font-bold text-emerald-900 border-r-4 border-emerald-500 pr-3">
@@ -326,7 +324,6 @@ export default function SignupPage() {
                         </div>
                     </div>
 
-                    {/* Country and Code */}
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div>
                             <label className="mb-1.5 block text-sm font-bold text-emerald-900">
