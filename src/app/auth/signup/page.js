@@ -137,7 +137,7 @@ export default function SignupPage() {
           timer: 2000,
           timerProgressBar: true
         }).then(() => {
-          window.location.href = savedUserResult.redirect;
+          window.location.href = "/auth/login";
         });
     };
 

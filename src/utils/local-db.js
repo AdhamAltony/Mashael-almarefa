@@ -1,53 +1,96 @@
 import { supabase } from './supabase-client';
 
 /**
- * Migration Mapping Helpers
+ * Fast Caching System
  */
-const mapUserFromSupabase = (u) => ({
-    ...u,
-    image: u.photo_url || "",
-    redirect: u.redirect_url || "",
-    joinDate: u.join_date ? new Date(u.join_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : ""
-});
+let cachedUsers = null;
 
-const mapUserToSupabase = (u) => ({
-    email: u.email,
-    password: u.password,
-    name: u.name,
-    role: u.role,
-    course: u.course || "",
-    phone: u.phone || "",
-    age: u.age ? parseInt(u.age) : null,
-    level: u.level || "",
-    photo_url: u.image || "",
-    status: u.status || "active",
-    redirect_url: u.redirect || ""
-});
+const mapUserFromSupabase = (u) => {
+    // 1. Determine common mapping
+    let redirect = u.redirect_url;
+    if (!redirect) {
+        if (u.role === "admin") redirect = "/admin/dashboard";
+        else if (u.role === "teacher") redirect = "/teacher/profile";
+        else if (u.role === "student") redirect = "/student/profile";
+        else redirect = "/";
+    }
 
-export const getLocalUsers = async () => {
+    // 2. Construction flat object for UI (Using columns identified in your DB)
+    return {
+        ...u,
+        name: u.name || "",
+        image: u.photo_url || "",
+        redirect: redirect,
+        phone: u.phone || "",
+        course: u.course || "",
+        status: u.status || "نشط",
+        joinDate: u.join_date ? new Date(u.join_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : ""
+    };
+};
+
+const mapUserToSupabase = (u) => {
+    let redirectUrl = u.redirect;
+    if (!redirectUrl) {
+        if (u.role === "admin") redirectUrl = "/admin/dashboard";
+        else if (u.role === "teacher") redirectUrl = "/teacher/profile";
+        else if (u.role === "student") redirectUrl = "/student/profile";
+        else redirectUrl = "/";
+    }
+
+    // Exact field names from your 'users' table document
+    return {
+        email: u.email,
+        password: u.password || "",
+        name: u.name,
+        role: u.role,
+        course: u.course || "",
+        phone: u.phone || "",
+        age: u.age ? parseInt(u.age) : null,
+        level: u.level || "",
+        photo_url: u.image || "",
+        status: u.status || "active",
+        redirect_url: redirectUrl,
+        join_date: u.join_date || new Date().toISOString()
+    };
+};
+
+export const getLocalUsers = async (forceRefresh = false) => {
+    // Return cached data instantly if available
+    if (cachedUsers && !forceRefresh) return cachedUsers;
+
     try {
+        // Simple and fast: Your 'users' table already contains all necessary list fields
         const { data, error } = await supabase.from('users').select('*');
+        
         if (error) {
-            console.error('Supabase getLocalUsers Error Detail:', error.message, error.details, error.hint);
+            console.error('Supabase getLocalUsers Error:', error.message);
             throw error;
         }
-        return data.map(mapUserFromSupabase);
+
+        cachedUsers = (data || []).map(mapUserFromSupabase);
+        return cachedUsers;
     } catch (error) {
-        console.error('Full Supabase Error Object:', error);
+        console.error('Retrieval Exception:', error);
         return [];
     }
 };
 
 export const saveUser = async (user) => {
     try {
+        cachedUsers = null; // Reset cache
+
         // 1. Insert into core users table
         const suUser = mapUserToSupabase(user);
         const { data, error } = await supabase.from('users').insert([suUser]).select();
         
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase Registration Error:', error.message);
+            throw error;
+        }
+        
         const newUser = data[0];
 
-        // 2. Insert into profile table
+        // 2. Insert into profile table (Using 'students_profile' and 'teachers_profile')
         if (user.role === 'teacher') {
             await supabase.from('teachers_profile').insert([{
                 user_id: newUser.id,
@@ -63,41 +106,57 @@ export const saveUser = async (user) => {
                 student_code: `STD-${Math.floor(10000 + Math.random() * 90000)}`,
                 guardian_name: user.guardian || "",
                 guardian_phone: user.guardianPhone || "",
-                department: user.department || "",
+                department: user.department || user.course || "",
                 registered_subjects: user.subjects || []
             }]);
         }
 
         return mapUserFromSupabase(newUser);
     } catch (error) {
-        console.error('Supabase saveUser Error:', error);
+        console.error('Detailed saveUser Error:', error.message || error);
         return null;
     }
 };
 
-export const deleteUser = async (idOrEmail) => {
+export const deleteUser = async (id, email) => {
     try {
+        // Robust delete from the parent users table
         const { error } = await supabase
             .from('users')
             .delete()
-            .or(`id.eq.${idOrEmail},email.eq.${idOrEmail}`);
-        if (error) throw error;
+            .eq('id', id);
+        
+        if (error) {
+            console.error('Detailed Delete Error:', error.message);
+            throw error;
+        }
+
+        // Clean up locally
+        cachedUsers = null;
+        if (email) {
+            localStorage.removeItem(`sessions_${email}`);
+            localStorage.removeItem(`progress_${email}`);
+            localStorage.removeItem(`assigned_courses_${email}`);
+        }
     } catch (error) {
-        console.error('Supabase deleteUser Error:', error);
+        console.error('Failed to Delete User:', error.message || error);
     }
 };
 
 export const updateUser = async (updatedUser) => {
     try {
+        cachedUsers = null;
+
+        // 1. Update core table
         const suUpdate = mapUserToSupabase(updatedUser);
         const { error } = await supabase
             .from('users')
             .update(suUpdate)
-            .or(`id.eq.${updatedUser.id},email.eq.${updatedUser.email}`);
+            .eq('id', updatedUser.id);
         
         if (error) throw error;
 
-        // Update secondary profiles if relevant fields are passed
+        // 2. Update profiles (Using your schema table names)
         if (updatedUser.role === 'teacher') {
             await supabase.from('teachers_profile').update({
                 specialization: updatedUser.course,
@@ -107,13 +166,13 @@ export const updateUser = async (updatedUser) => {
             }).eq('user_id', updatedUser.id);
         } else if (updatedUser.role === 'student') {
             await supabase.from('students_profile').update({
-                department: updatedUser.department,
-                registered_subjects: updatedUser.subjects,
+                department: updatedUser.course || updatedUser.department,
                 guardian_name: updatedUser.guardian,
-                guardian_phone: updatedUser.guardianPhone
+                guardian_phone: updatedUser.guardianPhone,
+                registered_subjects: updatedUser.subjects
             }).eq('user_id', updatedUser.id);
         }
     } catch (error) {
-        console.error('Supabase updateUser Error:', error);
+        console.error('Update Failed Details:', error.message || error);
     }
 };

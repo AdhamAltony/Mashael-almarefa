@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { getLocalUsers, deleteUser, updateUser } from "@/utils/local-db";
 
 // Mock data
 // Dynamic courses will be loaded from localStorage
@@ -21,11 +22,19 @@ export default function AdminUsersPage() {
     const [selectedCourses, setSelectedCourses] = useState([]);
     const [toast, setToast] = useState(null);
     const [mounted, setMounted] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchUsers = async () => {
-            const { getLocalUsers } = require("@/utils/local-db");
-            setUsers(await getLocalUsers());
+            try {
+                setLoading(true);
+                const data = await getLocalUsers();
+                setUsers(data || []);
+            } catch (err) {
+                console.error("Failed to fetch users:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchUsers();
         
@@ -38,14 +47,13 @@ export default function AdminUsersPage() {
 
     const filteredUsers = users.filter((user) => user.role === activeTab);
 
-    const handleDeleteClick = (id) => {
-        setUserToDelete(id);
+    const handleDeleteClick = (id, email) => {
+        setUserToDelete({ id, email });
     };
 
     const confirmDelete = async () => {
         if (userToDelete) {
-            const { deleteUser, getLocalUsers } = require("@/utils/local-db");
-            await deleteUser(userToDelete);
+            await deleteUser(userToDelete.id, userToDelete.email);
             setUsers(await getLocalUsers());
             setUserToDelete(null);
         }
@@ -63,7 +71,6 @@ export default function AdminUsersPage() {
 
     const handleSaveEdit = async (e) => {
         e.preventDefault();
-        const { updateUser, getLocalUsers } = require("@/utils/local-db");
         await updateUser({ ...editingUser, ...editForm });
         
         setUsers(await getLocalUsers());
@@ -74,7 +81,6 @@ export default function AdminUsersPage() {
         const currentStatus = user.status || "نشط";
         const newStatus = currentStatus === "إجازة" ? "نشط" : "إجازة";
         
-        const { updateUser, getLocalUsers } = require("@/utils/local-db");
         await updateUser({ ...user, status: newStatus });
         
         setUsers(await getLocalUsers());
@@ -156,7 +162,16 @@ export default function AdminUsersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50/50">
-                            {filteredUsers.length > 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" className="py-12 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+                                            <p className="text-sm font-bold text-emerald-800 animate-pulse">جاري تحميل البيانات...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredUsers.length > 0 ? (
                                 filteredUsers.map((user) => {
                                     const userImage = user.image || "";
                                     const status = user.status || "نشط";
@@ -226,7 +241,7 @@ export default function AdminUsersPage() {
                                                         </svg>
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteClick(user.id)}
+                                                        onClick={() => handleDeleteClick(user.id, user.email)}
                                                         className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
                                                         title="حذف"
                                                     >
@@ -241,7 +256,7 @@ export default function AdminUsersPage() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="4" className="py-8 text-center text-slate-500">
+                                    <td colSpan="5" className="py-8 text-center text-slate-500">
                                         لا يوجد أعضاء في هذا القسم حاليًا.
                                     </td>
                                 </tr>
