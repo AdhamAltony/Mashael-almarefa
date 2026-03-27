@@ -69,17 +69,21 @@ export default function TeacherProfilePage() {
                 };
 
                 // Merge with extended local profile data (like bio, image, phone) if it exists for THIS email
-                const savedProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
+                const savedProfileKey = `teacher_profile_${currentEmail}`;
+                const savedProfile = localStorage.getItem(savedProfileKey);
+                
                 if (savedProfile) {
                     const parsed = JSON.parse(savedProfile);
                     setProfile({
                         ...initialProfile,
                         ...parsed,
-                        // Ensure official record attributes take absolute precedence
+                        // Ensure official record attributes from session/db take absolute precedence
                         name: initialProfile.name,
                         department: initialProfile.department,
                         selectedSubjects: initialProfile.selectedSubjects,
-                        specialization: initialProfile.specialization
+                        specialization: initialProfile.specialization,
+                        // DO NOT override status if it exists in savedProfile
+                        status: parsed.status || initialProfile.status
                     });
                 } else {
                     setProfile(initialProfile);
@@ -89,10 +93,25 @@ export default function TeacherProfilePage() {
             }
         }
         
-        // Remove legacy key to prevent side effects
-        localStorage.removeItem("teacher_profile");
         setLoading(false);
     }, []);
+
+    // Instant Save for Status Toggle
+    const handleStatusToggle = (newStatus) => {
+        setProfile(prev => {
+            const updated = { ...prev, status: newStatus };
+            // Save immediately to specific teacher profile
+            localStorage.setItem(`teacher_profile_${prev.email}`, JSON.stringify(updated));
+            // Also notify Admin by updating central DB if email exists
+            if (prev.email) {
+                const { updateUser } = require("@/utils/local-db");
+                updateUser({ email: prev.email, status: newStatus });
+            }
+            return updated;
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -246,18 +265,18 @@ export default function TeacherProfilePage() {
                             <div className="flex p-1.5 bg-emerald-50/50 rounded-2xl border border-emerald-100 max-w-sm">
                                 <button
                                     type="button"
-                                    onClick={() => { setProfile({...profile, status: "نشط"}); setSaved(false); }}
+                                    onClick={() => handleStatusToggle("نشط")}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${profile.status === 'نشط' ? 'bg-white text-emerald-700 shadow-md' : 'text-slate-500 hover:text-emerald-600'}`}
                                 >
-                                    <span className={`h-2 w-2 rounded-full ${profile.status === 'نشط' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                    <span className={`h-2.5 w-2.5 rounded-full ${profile.status === 'نشط' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
                                     نشط
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => { setProfile({...profile, status: "إجازة"}); setSaved(false); }}
+                                    onClick={() => handleStatusToggle("إجازة")}
                                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${profile.status === 'إجازة' ? 'bg-white text-slate-700 shadow-md' : 'text-slate-500 hover:text-slate-600'}`}
                                 >
-                                    <span className={`h-2 w-2 rounded-full ${profile.status === 'إجازة' ? 'bg-slate-500' : 'bg-slate-300'}`}></span>
+                                    <span className={`h-2.5 w-2.5 rounded-full ${profile.status === 'إجازة' ? 'bg-slate-500' : 'bg-slate-300'}`}></span>
                                     إجازة
                                 </button>
                             </div>

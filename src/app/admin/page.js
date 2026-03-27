@@ -86,10 +86,11 @@ export default function AdminUsersPage() {
     const toggleTeacherStatus = (user) => {
         const profileKey = `teacher_profile_${user.email}`;
         const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
-        const currentStatus = profile.available || "نشط";
+        // We use 'status' for Active/Vacation, while 'available' is for available times string
+        const currentStatus = profile.status || "نشط";
         const newStatus = currentStatus === "إجازة" ? "نشط" : "إجازة";
         
-        profile.available = newStatus;
+        profile.status = newStatus;
         localStorage.setItem(profileKey, JSON.stringify(profile));
         
         // Refresh users list to show update
