@@ -4,27 +4,31 @@ import { useState, useEffect } from "react";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState([
-    { label: "إجمالي الطلاب", value: "248", delta: "+12 هذا الأسبوع", key: "total_students" },
-    { label: "المعلمون النشطون", value: "18", delta: "+2 هذا الشهر", key: "active_teachers" },
-    { label: "الحصص المكتملة", value: "34", delta: "تحديث تلقائي", key: "admin_total_sessions" },
+    { label: "إجمالي الطلاب", value: "...", delta: "جاري التحميل...", key: "total_students" },
+    { label: "المعلمون النشطون", value: "...", delta: "جاري التحميل...", key: "active_teachers" },
+    { label: "الحصص المكتملة", value: "...", delta: "جاري التحميل...", key: "admin_total_sessions" },
   ]);
 
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
 
   useEffect(() => {
-    const { getLocalUsers } = require("@/utils/local-db");
-    const allUsers = getLocalUsers();
-    
-    const totalStudents = allUsers.filter(u => u.role === "student").length;
-    const totalTeachers = allUsers.filter(u => u.role === "teacher").length;
-    const savedSessions = localStorage.getItem("admin_total_sessions") || "0";
+    const fetchStats = async () => {
+      const { getLocalUsers } = require("@/utils/local-db");
+      const allUsers = await getLocalUsers();
+      
+      const totalStudents = allUsers.filter(u => u.role === "student").length;
+      const totalTeachers = allUsers.filter(u => u.role === "teacher").length;
+      const savedSessions = localStorage.getItem("admin_total_sessions") || "0";
 
-    setStats([
-      { label: "إجمالي الطلاب", value: totalStudents.toString(), delta: "تحديث تلقائي", key: "total_students" },
-      { label: "المعلمون النشطون", value: totalTeachers.toString(), delta: "تحديث تلقائي", key: "active_teachers" },
-      { label: "الحصص المكتملة", value: savedSessions, delta: "تحديث تلقائي", key: "admin_total_sessions" },
-    ]);
+      setStats([
+        { label: "إجمالي الطلاب", value: totalStudents.toString(), delta: "تحديث تلقائي", key: "total_students" },
+        { label: "المعلمون النشطون", value: totalTeachers.toString(), delta: "تحديث تلقائي", key: "active_teachers" },
+        { label: "الحصص المكتملة", value: savedSessions, delta: "تحديث تلقائي", key: "admin_total_sessions" },
+      ]);
+    };
+    
+    fetchStats();
 
     const savedTasks = localStorage.getItem("admin_tasks");
     if (savedTasks) {

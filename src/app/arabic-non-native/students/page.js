@@ -158,12 +158,16 @@ export default function ArabicStudentsListPage() {
     const [currentYear, setCurrentYear] = useState(null);
 
     useEffect(() => {
-        const { getLocalUsers } = require("@/utils/local-db");
-        const allUsers = getLocalUsers();
-        // Filter students for "اللغة العربية لغير الناطقين"
-        const filtered = allUsers.filter(u => u.role === "student" && u.course === "اللغة العربية لغير الناطقين");
-        setStudents(filtered);
-        setCurrentYear(new Date().getFullYear());
+        const fetchStudents = async () => {
+            const { getLocalUsers } = require("@/utils/local-db");
+            const allUsers = await getLocalUsers();
+            // Filter students for "اللغة العربية لغير الناطقين"
+            const filtered = allUsers.filter(u => u.role === "student" && u.course === "اللغة العربية لغير الناطقين");
+            setStudents(filtered);
+            setCurrentYear(new Date().getFullYear());
+        };
+        
+        fetchStudents();
     }, []);
 
     const handleSave = (studentEmail, progress) => {

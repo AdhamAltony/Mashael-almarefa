@@ -44,65 +44,74 @@ export default function StudentProfilePage() {
   const [upcomingSessions, setUpcomingSessions] = useState([]);
 
   useEffect(() => {
-    const cookies = document.cookie.split("; ");
-    const sessionCookie = cookies.find(c => c.startsWith("session="));
+    const fetchInitialData = async () => {
+      const cookies = document.cookie.split("; ");
+      const sessionCookie = cookies.find(c => c.startsWith("session="));
+      
+      if (sessionCookie?.split("=")[1]) {
+        try {
+          const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+          const decoded = decodeURIComponent(atob(base64));
+          const data = JSON.parse(decoded);
+          const currentEmail = data.email;
+          
+          // Fetch sessions assigned to this student
+          const savedSessions = localStorage.getItem(`sessions_${currentEmail}`);
+          if (savedSessions) {
+              setUpcomingSessions(JSON.parse(savedSessions).slice(0, 3));
+          }
+
+          // Load profile data
+          const { getLocalUsers } = require("@/utils/local-db");
+          const allUsers = await getLocalUsers();
+          const dbUser = allUsers.find(u => u.email === currentEmail);
+
+          const initialFromSession = {
+              id: dbUser?.id || data.id,
+              name: dbUser?.name || data.name || "طالب جديد",
+              course: dbUser?.course || data.course || "بوابة الطالب",
+              student_code: dbUser?.student_code || data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
+              level: dbUser?.level || (data.department 
+                  ? `${data.department}${data.subjects?.length > 0 ? ` - (${data.subjects.join("، ")})` : ""}` 
+                  : "بانتظار تحديد المستوى"),
+              email: currentEmail,
+              guardian: dbUser?.guardian || data.guardian || "غير محدد",
+              age: dbUser?.age || data.age || "",
+              country: dbUser?.country || data.country || data.countryName || "غير محدد",
+              phone: dbUser?.phone || data.phone || data.guardianPhone || "غير محدد",
+              joinDate: dbUser?.joinDate || data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
+              assignedTeacher: ""
+          };
+
+          const localData = localStorage.getItem(`student_profile_${currentEmail}`);
+          if (localData) {
+              const parsedLocal = JSON.parse(localData);
+              let teacherImage = "";
+              if (parsedLocal.assignedTeacherEmail) {
+                  const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
+                  if (tProfile) {
+                      teacherImage = JSON.parse(tProfile).image || "";
+                  }
+              }
+              setStudent({
+                  ...initialFromSession,
+                  ...parsedLocal,
+                  assignedTeacherImage: teacherImage
+              });
+          } else {
+              setStudent(initialFromSession);
+          }
+
+          // Fetch progress
+          const savedProgress = localStorage.getItem(`progress_${currentEmail}`);
+          if (savedProgress) {
+            setProgressData(JSON.parse(savedProgress));
+          }
+        } catch (e) { console.error(e); }
+      }
+    };
     
-    if (sessionCookie?.split("=")[1]) {
-      try {
-        const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-        const decoded = decodeURIComponent(atob(base64));
-        const data = JSON.parse(decoded);
-        const currentEmail = data.email;
-        
-        // Fetch sessions assigned to this student
-        const savedSessions = localStorage.getItem(`sessions_${currentEmail}`);
-        if (savedSessions) {
-            setUpcomingSessions(JSON.parse(savedSessions).slice(0, 3));
-        }
-
-        // Load profile data
-        const localData = localStorage.getItem(`student_profile_${currentEmail}`);
-        const initialFromSession = {
-            name: data.name || "طالب جديد",
-            course: data.course || "بوابة الطالب",
-            id: data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
-            level: data.department 
-                ? `${data.department}${data.subjects?.length > 0 ? ` - (${data.subjects.join("، ")})` : ""}` 
-                : "بانتظار تحديد المستوى",
-            email: data.email || "",
-            guardian: data.guardian || "غير محدد",
-            age: data.age || "",
-            country: data.country || data.countryName || "غير محدد",
-            phone: data.phone || data.guardianPhone || "غير محدد",
-            joinDate: data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
-            assignedTeacher: ""
-        };
-
-        if (localData) {
-            const parsedLocal = JSON.parse(localData);
-            let teacherImage = "";
-            if (parsedLocal.assignedTeacherEmail) {
-                const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
-                if (tProfile) {
-                    teacherImage = JSON.parse(tProfile).image || "";
-                }
-            }
-            setStudent({
-                ...initialFromSession,
-                ...parsedLocal,
-                assignedTeacherImage: teacherImage
-            });
-        } else {
-            setStudent(initialFromSession);
-        }
-
-        // Fetch progress
-        const savedProgress = localStorage.getItem(`progress_${currentEmail}`);
-        if (savedProgress) {
-          setProgressData(JSON.parse(savedProgress));
-        }
-      } catch (e) { console.error(e); }
-    }
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
@@ -122,14 +131,17 @@ export default function StudentProfilePage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const newImage = reader.result;
-        setStudent((prev) => {
-          const updated = { ...prev, image: newImage };
-          // Save image immediately so it reflects in Navbar and after refresh
-          localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
-          // Notify Navbar
-          window.dispatchEvent(new Event('profileUpdate'));
-          return updated;
-        });
+        
+        // 1. Update state
+        setStudent((prev) => ({ ...prev, image: newImage }));
+        
+        // 2. Side effects
+        const updated = { ...student, image: newImage };
+        localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
+        
+        // Notify Navbar
+        window.dispatchEvent(new Event('profileUpdate'));
+
         // Feedback
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
@@ -138,19 +150,19 @@ export default function StudentProfilePage() {
     }
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    // Update individual profile file
+    const { updateUser } = require("@/utils/local-db");
+    
+    // Update Supabase
+    await updateUser({
+      ...student,
+      role: "student"
+    });
+
+    // Update individual profile file (Local cache)
     localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(student));
     
-    // Update global app_users database
-    const allUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
-    const updatedUsers = allUsers.map(u => {
-        if (u.email === student.email) return { ...u, name: student.name };
-        return u;
-    });
-    localStorage.setItem("app_users", JSON.stringify(updatedUsers));
-
     // Sync navbar and local display
     window.dispatchEvent(new Event('profileUpdate'));
     setIsEditing(false);

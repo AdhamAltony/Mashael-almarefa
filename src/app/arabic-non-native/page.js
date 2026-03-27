@@ -393,9 +393,13 @@ export default function ArabicNonNativePage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
-    const { getLocalUsers } = require("@/utils/local-db");
-    const all = getLocalUsers();
-    setStudents(all.filter(u => u.role === "student" && u.course === "اللغة العربية لغير الناطقين"));
+    const fetchStudents = async () => {
+      const { getLocalUsers } = require("@/utils/local-db");
+      const all = await getLocalUsers();
+      setStudents(all.filter(u => u.role === "student" && u.course === "اللغة العربية لغير الناطقين"));
+    };
+    
+    fetchStudents();
   }, []);
 
   // Stable references — won't trigger child re-renders on each parent render

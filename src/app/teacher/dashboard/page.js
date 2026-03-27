@@ -27,49 +27,53 @@ export default function TeacherDashboardPage() {
     const [teacherName, setTeacherName] = useState("المعلم");
 
     useEffect(() => {
-        const { getLocalUsers } = require("@/utils/local-db");
-        const allUsers = getLocalUsers();
+        const fetchDashboardData = async () => {
+            const { getLocalUsers } = require("@/utils/local-db");
+            const allUsers = await getLocalUsers();
 
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        let session = null;
-        if (sessionCookie) {
-            try {
-                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                const decoded = decodeURIComponent(atob(base64));
-                session = JSON.parse(decoded);
-                setTeacherName(session.name);
-            } catch (e) { console.error(e); }
-        }
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
+            let session = null;
+            if (sessionCookie) {
+                try {
+                    const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                    const decoded = decodeURIComponent(atob(base64));
+                    session = JSON.parse(decoded);
+                    setTeacherName(session.name);
+                } catch (e) { console.error(e); }
+            }
 
-        const teacherEmail = session?.email;
-        const myStudents = allUsers.filter(u => {
-            if (u.role !== "student") return false;
-            const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
-            return profile.assignedTeacherEmail === teacherEmail;
-        });
+            const teacherEmail = session?.email;
+            const myStudents = allUsers.filter(u => {
+                if (u.role !== "student") return false;
+                const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
+                return profile.assignedTeacherEmail === teacherEmail;
+            });
 
-        const teacherDoneCount = localStorage.getItem(`teacher_done_${session?.email}`) || "0";
+            const teacherDoneCount = localStorage.getItem(`teacher_done_${session?.email}`) || "0";
 
-        setStats([
-            { label: "إجمالي الحصص", value: teacherDoneCount, key: "total_sessions" },
-            { label: "الطلاب النشطون", value: myStudents.length.toString(), key: "active_students" },
-            { label: "التقييم العام", value: "4.9/5", key: "rating" },
-            { label: "القسم", value: session?.course || "عام", key: "department" },
-        ]);
+            setStats([
+                { label: "إجمالي الحصص", value: teacherDoneCount, key: "total_sessions" },
+                { label: "الطلاب النشطون", value: myStudents.length.toString(), key: "active_students" },
+                { label: "التقييم العام", value: "4.9/5", key: "rating" },
+                { label: "القسم", value: session?.course || "عام", key: "department" },
+            ]);
 
-        if (myStudents.length > 0) {
-            const dynamicClasses = myStudents.slice(0, 3).map((s, idx) => ({
-                id: s.id || idx,
-                student: s.name,
-                course: s.course,
-                time: "10:00 صباحاً",
-                meetLink: "https://meet.google.com/new"
-            }));
-            setClasses(dynamicClasses);
-        } else {
-            setClasses([]);
-        }
+            if (myStudents.length > 0) {
+                const dynamicClasses = myStudents.slice(0, 3).map((s, idx) => ({
+                    id: s.id || idx,
+                    student: s.name,
+                    course: s.course,
+                    time: "10:00 صباحاً",
+                    meetLink: "https://meet.google.com/new"
+                }));
+                setClasses(dynamicClasses);
+            } else {
+                setClasses([]);
+            }
+        };
+        
+        fetchDashboardData();
     }, []);
 
     const markAttendance = (id) => {

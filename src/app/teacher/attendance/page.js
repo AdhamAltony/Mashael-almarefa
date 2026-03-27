@@ -24,43 +24,47 @@ function AttendanceContent() {
     });
 
     useEffect(() => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
+        const fetchAttendanceData = async () => {
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
+            
+            if (!sessionCookie) {
+                router.push("/auth/login");
+                return;
+            }
+
+            try {
+                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                const decoded = decodeURIComponent(atob(base64));
+                const sessionData = JSON.parse(decoded);
+                
+                let deptName = sessionData.department || "";
+                if (!deptName && sessionData.course) {
+                    if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
+                    else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
+                    else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
+                }
+                setDepartment(deptName);
+
+                const { getLocalUsers } = require("@/utils/local-db");
+                const allUsers = await getLocalUsers();
+                const filtered = allUsers.filter(u => 
+                    u.role === "student" && 
+                    (u.course === deptName || u.department === deptName)
+                );
+                setStudents(filtered);
+                
+                if (initialEmail) {
+                    setFormData(prev => ({ ...prev, studentEmail: initialEmail }));
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
         
-        if (!sessionCookie) {
-            router.push("/auth/login");
-            return;
-        }
-
-        try {
-            const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-            const decoded = decodeURIComponent(atob(base64));
-            const sessionData = JSON.parse(decoded);
-            
-            let deptName = sessionData.department || "";
-            if (!deptName && sessionData.course) {
-                if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
-                else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
-                else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
-            }
-            setDepartment(deptName);
-
-            const { getLocalUsers } = require("@/utils/local-db");
-            const allUsers = getLocalUsers();
-            const filtered = allUsers.filter(u => 
-                u.role === "student" && 
-                (u.course === deptName || u.department === deptName)
-            );
-            setStudents(filtered);
-            
-            if (initialEmail) {
-                setFormData(prev => ({ ...prev, studentEmail: initialEmail }));
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
+        fetchAttendanceData();
     }, [router, initialEmail]);
 
     const handleSubmit = (e) => {
