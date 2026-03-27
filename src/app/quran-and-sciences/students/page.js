@@ -163,12 +163,16 @@ export default function QuranStudentsListPage() {
     const [currentYear, setCurrentYear] = useState(null);
 
     useEffect(() => {
-        const { getLocalUsers } = require("@/utils/local-db");
-        const allUsers = getLocalUsers();
-        // Filter students for "ركن القرآن الكريم"
-        const filtered = allUsers.filter(u => u.role === "student" && u.course === "ركن القرآن الكريم");
-        setStudents(filtered);
-        setCurrentYear(new Date().getFullYear());
+        const fetchStudents = async () => {
+            const { getLocalUsers } = require("@/utils/local-db");
+            const allUsers = await getLocalUsers();
+            // Filter students for "ركن القرآن الكريم"
+            const filtered = allUsers.filter(u => u.role === "student" && u.course === "ركن القرآن الكريم");
+            setStudents(filtered);
+            setCurrentYear(new Date().getFullYear());
+        };
+        
+        fetchStudents();
     }, []);
 
     const handleSave = (studentId, progress) => {

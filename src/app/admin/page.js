@@ -23,8 +23,11 @@ export default function AdminUsersPage() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const { getLocalUsers } = require("@/utils/local-db");
-        setUsers(getLocalUsers());
+        const fetchUsers = async () => {
+            const { getLocalUsers } = require("@/utils/local-db");
+            setUsers(await getLocalUsers());
+        };
+        fetchUsers();
         
         // Load real courses from Courses Center
         const savedCourses = JSON.parse(localStorage.getItem("platform_courses") || "[]");
@@ -39,11 +42,11 @@ export default function AdminUsersPage() {
         setUserToDelete(id);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (userToDelete) {
             const { deleteUser, getLocalUsers } = require("@/utils/local-db");
-            deleteUser(userToDelete);
-            setUsers(getLocalUsers());
+            await deleteUser(userToDelete);
+            setUsers(await getLocalUsers());
             setUserToDelete(null);
         }
     };
@@ -54,42 +57,27 @@ export default function AdminUsersPage() {
 
     const openEditModal = (user) => {
         setEditingUser(user);
-        let rating = "5.0";
-        if (user.role === "teacher") {
-            const profile = JSON.parse(localStorage.getItem(`teacher_profile_${user.email}`) || "{}");
-            rating = profile.rating || "5.0";
-        }
+        let rating = user.rating || "5.0";
         setEditForm({ name: user.name, email: user.email, course: user.course, rating });
     };
 
-    const handleSaveEdit = (e) => {
+    const handleSaveEdit = async (e) => {
         e.preventDefault();
         const { updateUser, getLocalUsers } = require("@/utils/local-db");
-        updateUser({ ...editingUser, ...editForm });
+        await updateUser({ ...editingUser, ...editForm });
         
-        if (editingUser.role === "teacher") {
-            const profileKey = `teacher_profile_${editingUser.email}`;
-            const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
-            profile.rating = editForm.rating;
-            localStorage.setItem(profileKey, JSON.stringify(profile));
-        }
-
-        setUsers(getLocalUsers());
+        setUsers(await getLocalUsers());
         setEditingUser(null);
     };
 
-    const toggleTeacherStatus = (user) => {
-        const profileKey = `teacher_profile_${user.email}`;
-        const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
-        const currentStatus = profile.available || "نشط";
+    const toggleTeacherStatus = async (user) => {
+        const currentStatus = user.status || "نشط";
         const newStatus = currentStatus === "إجازة" ? "نشط" : "إجازة";
         
-        profile.available = newStatus;
-        localStorage.setItem(profileKey, JSON.stringify(profile));
+        const { updateUser, getLocalUsers } = require("@/utils/local-db");
+        await updateUser({ ...user, status: newStatus });
         
-        // Refresh users list to show update
-        const { getLocalUsers } = require("@/utils/local-db");
-        setUsers(getLocalUsers());
+        setUsers(await getLocalUsers());
         
         setToast({ message: `تم تغيير حالة ${user.name} إلى ${newStatus}`, type: "success" });
         setTimeout(() => setToast(null), 3000);
@@ -170,12 +158,8 @@ export default function AdminUsersPage() {
                         <tbody className="divide-y divide-emerald-50/50">
                             {filteredUsers.length > 0 ? (
                                 filteredUsers.map((user) => {
-                                    const profileKey = user.role === "teacher" 
-                                        ? `teacher_profile_${user.email}` 
-                                        : `student_profile_${user.email}`;
-                                    const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
-                                    const userImage = profile.image || "";
-                                    const status = profile.available || "متاح";
+                                    const userImage = user.image || "";
+                                    const status = user.status || "نشط";
 
                                     return (
                                         <tr key={user.id} className="group transition-colors hover:bg-emerald-50/30">

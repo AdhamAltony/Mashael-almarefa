@@ -155,52 +155,56 @@ export default function TeacherStudentsPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
+        const fetchStudents = async () => {
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
 
-        if (!sessionCookie) {
-            router.push("/auth/login");
-            return;
-        }
-
-        try {
-            const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-            const decoded = decodeURIComponent(atob(base64));
-            const sessionData = JSON.parse(decoded);
-
-            let deptName = sessionData.department || "";
-            if (!deptName && sessionData.course) {
-                if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
-                else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
-                else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
+            if (!sessionCookie) {
+                router.push("/auth/login");
+                return;
             }
-            setDepartment(deptName);
 
-            const teacherEmail = sessionData.email;
-            const { getLocalUsers } = require("@/utils/local-db");
-            const allUsers = getLocalUsers();
-            const filtered = allUsers.filter(u => {
-                if (u.role !== "student") return false;
-                const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
-                return profile.assignedTeacherEmail === teacherEmail;
-            });
+            try {
+                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                const decoded = decodeURIComponent(atob(base64));
+                const sessionData = JSON.parse(decoded);
 
-            // Fetch images from student profiles
-            const studentsWithImages = filtered.map(s => {
-                const profile = localStorage.getItem(`student_profile_${s.email}`);
-                if (profile) {
-                    const parsed = JSON.parse(profile);
-                    return { ...s, image: parsed.image };
+                let deptName = sessionData.department || "";
+                if (!deptName && sessionData.course) {
+                    if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
+                    else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
+                    else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
                 }
-                return s;
-            });
+                setDepartment(deptName);
 
-            setStudents(studentsWithImages);
-        } catch (e) {
-            console.error("Session error", e);
-        } finally {
-            setLoading(false);
-        }
+                const teacherEmail = sessionData.email;
+                const { getLocalUsers } = require("@/utils/local-db");
+                const allUsers = await getLocalUsers();
+                const filtered = allUsers.filter(u => {
+                    if (u.role !== "student") return false;
+                    const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
+                    return profile.assignedTeacherEmail === teacherEmail;
+                });
+
+                // Fetch images from student profiles
+                const studentsWithImages = filtered.map(s => {
+                    const profile = localStorage.getItem(`student_profile_${s.email}`);
+                    if (profile) {
+                        const parsed = JSON.parse(profile);
+                        return { ...s, image: parsed.image || s.image };
+                    }
+                    return s;
+                });
+
+                setStudents(studentsWithImages);
+            } catch (e) {
+                console.error("Session error", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchStudents();
     }, [router]);
 
     const handleSave = (studentEmail, progress) => {

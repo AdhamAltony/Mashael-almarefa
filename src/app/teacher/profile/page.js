@@ -40,58 +40,63 @@ export default function TeacherProfilePage() {
     });
 
     useEffect(() => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        let currentEmail = "";
+        const fetchInitialData = async () => {
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
+            let currentEmail = "";
 
-        if (sessionCookie) {
-            try {
-                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                const decoded = decodeURIComponent(atob(base64));
-                const data = JSON.parse(decoded);
-                currentEmail = data.email;
-                
-                // Fetch the latest central record from "app_users" (the true current database)
-                const { getLocalUsers } = require("@/utils/local-db");
-                const allUsers = getLocalUsers();
-                const dbUser = allUsers.find(u => u.email === currentEmail);
+            if (sessionCookie) {
+                try {
+                    const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                    const decoded = decodeURIComponent(atob(base64));
+                    const data = JSON.parse(decoded);
+                    currentEmail = data.email;
+                    
+                    // Fetch the latest central record from "app_users" (the true current database)
+                    const { getLocalUsers } = require("@/utils/local-db");
+                    const allUsers = await getLocalUsers();
+                    const dbUser = allUsers.find(u => u.email === currentEmail);
 
-                // Initialize from session/database data
-                const deptId = DEPARTMENTS.find(d => d.name === (dbUser?.department || data.department))?.id || "quran";
-                const initialProfile = {
-                    ...profile,
-                    name: dbUser?.name || data.name || "معلم جديد",
-                    email: currentEmail,
-                    department: deptId,
-                    selectedSubjects: dbUser?.subjects || data.subjects || [],
-                    specialization: dbUser?.course || data.course || (data.department ? `${data.department}` : "لم يتم تحديد القسم"),
-                    phone: dbUser?.phone || data.phone || "",
-                };
+                    // Initialize from session/database data
+                    const deptId = DEPARTMENTS.find(d => d.name === (dbUser?.department || data.department))?.id || "quran";
+                    const initialProfile = {
+                        ...profile,
+                        id: dbUser?.id, // Capture Supabase ID
+                        name: dbUser?.name || data.name || "معلم جديد",
+                        email: currentEmail,
+                        department: deptId,
+                        selectedSubjects: dbUser?.subjects || data.subjects || [],
+                        specialization: dbUser?.course || data.course || (data.department ? `${data.department}` : "لم يتم تحديد القسم"),
+                        phone: dbUser?.phone || data.phone || "",
+                    };
 
-                // Merge with extended local profile data (like bio, image, phone) if it exists for THIS email
-                const savedProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
-                if (savedProfile) {
-                    const parsed = JSON.parse(savedProfile);
-                    setProfile({
-                        ...initialProfile,
-                        ...parsed,
-                        // Ensure official record attributes take absolute precedence
-                        name: initialProfile.name,
-                        department: initialProfile.department,
-                        selectedSubjects: initialProfile.selectedSubjects,
-                        specialization: initialProfile.specialization
-                    });
-                } else {
-                    setProfile(initialProfile);
+                    // Merge with extended local profile data (like bio, image, phone) if it exists for THIS email
+                    const savedProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
+                    if (savedProfile) {
+                        const parsed = JSON.parse(savedProfile);
+                        setProfile({
+                            ...initialProfile,
+                            ...parsed,
+                            // Ensure official record attributes take absolute precedence
+                            name: initialProfile.name,
+                            department: initialProfile.department,
+                            selectedSubjects: initialProfile.selectedSubjects,
+                            specialization: initialProfile.specialization
+                        });
+                    } else {
+                        setProfile(initialProfile);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse session", e);
                 }
-            } catch (e) {
-                console.error("Failed to parse session", e);
             }
-        }
+            
+            // Remove legacy key to prevent side effects
+            localStorage.removeItem("teacher_profile");
+            setLoading(false);
+        };
         
-        // Remove legacy key to prevent side effects
-        localStorage.removeItem("teacher_profile");
-        setLoading(false);
+        fetchInitialData();
     }, []);
 
     const handleChange = (e) => {
@@ -121,16 +126,18 @@ export default function TeacherProfilePage() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const newImage = reader.result;
-                setProfile((prev) => {
-                    const updated = { ...prev, image: newImage };
-                    // Save image immediately so it reflects in Navbar and after refresh
-                    if (prev.email) {
-                        localStorage.setItem(`teacher_profile_${prev.email}`, JSON.stringify(updated));
-                        // Notify Navbar
-                        window.dispatchEvent(new Event('profileUpdate'));
-                    }
-                    return updated;
-                });
+                
+                // 1. Update state
+                setProfile(prev => ({ ...prev, image: newImage }));
+                
+                // 2. Perform side effects outside the updater
+                if (profile.email) {
+                    const updated = { ...profile, image: newImage };
+                    localStorage.setItem(`teacher_profile_${profile.email}`, JSON.stringify(updated));
+                    // Notify Navbar - this will trigger loadSession in TeacherNavbar
+                    window.dispatchEvent(new Event('profileUpdate'));
+                }
+
                 // Feedback
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
@@ -139,26 +146,31 @@ export default function TeacherProfilePage() {
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const { updateUser } = require("@/utils/local-db");
         
-        // 1. Update Central DB
+        // 1. Update Central DB (Supabase via local-db adapter)
         const updatedUser = {
+            id: profile.id, // Mandatory for Supabase updates
             email: profile.email,
             name: profile.name,
             phone: profile.phone,
             department: DEPARTMENTS.find(d => d.id === profile.department)?.name || profile.specialization,
             subjects: profile.selectedSubjects,
-            course: profile.specialization
+            course: profile.specialization,
+            bio: profile.bio,
+            status: profile.status,
+            image: profile.image,
+            role: "teacher"
         };
-        updateUser(updatedUser);
+        await updateUser(updatedUser);
 
         // 2. Update Local Cache
         localStorage.setItem(`teacher_profile_${profile.email}`, JSON.stringify(profile));
         
         // 3. Update Session Cookie
-        const base64 = btoa(encodeURIComponent(JSON.stringify({ ...updatedUser, role: "teacher" })));
+        const base64 = btoa(encodeURIComponent(JSON.stringify(updatedUser)));
         document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
         
         // 4. Notify UI

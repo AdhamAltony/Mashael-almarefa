@@ -66,7 +66,7 @@ export default function SignupPage() {
 
     const [error, setError] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
@@ -112,7 +112,7 @@ export default function SignupPage() {
             guardianPhone: formData.guardianPhone || "",
             countryCode: formData.countryCode || "+20"
         };
-        const savedUserResult = saveUser(userData);
+        const savedUserResult = await saveUser(userData);
 
         if (!savedUserResult) {
           Swal.fire({

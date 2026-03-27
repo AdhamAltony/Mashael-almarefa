@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -21,7 +21,7 @@ export default function LoginPage() {
     }
 
     const { getLocalUsers } = require("@/utils/local-db");
-    const validUsers = getLocalUsers();
+    const validUsers = await getLocalUsers();
 
     const userByEmail = validUsers.find(u => u.email === email);
 
