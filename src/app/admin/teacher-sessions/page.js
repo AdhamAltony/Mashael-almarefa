@@ -36,6 +36,7 @@ export default function AdminTeacherSessionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [teachers, setTeachers] = useState([]);
   const [mounted, setMounted] = useState(false);
+  const [historyModal, setHistoryModal] = useState(null);
 
   useEffect(() => {
     setMounted(true);
@@ -126,7 +127,8 @@ export default function AdminTeacherSessionsPage() {
                 <th className="whitespace-nowrap px-6 py-4 font-bold">الحصص المكتملة</th>
                 <th className="whitespace-nowrap px-6 py-4 font-bold">سعر الحصة</th>
                 <th className="whitespace-nowrap px-6 py-4 font-bold text-center">المبلغ المستلم</th>
-                <th className="whitespace-nowrap px-6 py-4 font-bold">المبلغ المستحق</th>
+                <th className="whitespace-nowrap px-6 py-4 font-bold text-center">المبلغ المستحق</th>
+                <th className="whitespace-nowrap px-6 py-4 font-bold text-center">التفاصيل</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-50">
@@ -201,6 +203,18 @@ export default function AdminTeacherSessionsPage() {
                         <span className="text-[10px] text-slate-400">الإجمالي: {totalEarned}</span>
                       </div>
                     </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-center">
+                      <button
+                        onClick={() => {
+                          const history = JSON.parse(localStorage.getItem(`teacher_history_${teacher.email}`) || "[]");
+                          setHistoryModal({ name: teacher.name, email: teacher.email, logs: history });
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-4 py-2 hover:bg-emerald-500 transition-all text-xs font-bold text-slate-400 hover:text-white"
+                      >
+                        سجل الحصص
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -213,6 +227,80 @@ export default function AdminTeacherSessionsPage() {
           )}
         </div>
       </div>
+
+      {/* History Modal (Sheet View) */}
+      {historyModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-emerald-950/40 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="modern-card max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2.5rem] border border-white bg-white shadow-2xl flex flex-col animate-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="bg-emerald-600 p-6 text-white flex justify-between items-center sm:p-8">
+              <div>
+                <h2 className="text-xl font-black sm:text-2xl">سجل الحصص التفصيلي</h2>
+                <p className="mt-1 text-xs font-bold text-emerald-100 opacity-80">المعلم: {historyModal.name} | {historyModal.email}</p>
+              </div>
+              <button
+                onClick={() => setHistoryModal(null)}
+                className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+              {historyModal.logs.length === 0 ? (
+                <div className="py-20 text-center text-slate-400">
+                  <div className="text-5xl mb-4 opacity-10">🗓️</div>
+                  <p className="font-bold">لا يوجد سجل حصص مسجل لهذا المعلم حتى الآن.</p>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-2xl border border-emerald-50">
+                  <table className="w-full text-right text-xs sm:text-sm">
+                    <thead className="bg-emerald-50 font-bold text-emerald-900 border-b border-emerald-100">
+                      <tr>
+                        <th className="px-5 py-4">اسم الطالب</th>
+                        <th className="px-5 py-4">التاريخ</th>
+                        <th className="px-5 py-4">المدة</th>
+                        <th className="px-5 py-4">الموضوع</th>
+                        <th className="px-5 py-4 text-center">التقييم</th>
+                        <th className="px-5 py-4">التفاصيل</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-emerald-50">
+                      {[...historyModal.logs].reverse().map((log, idx) => (
+                        <tr key={idx} className="hover:bg-emerald-50/20 transition-colors">
+                          <td className="px-5 py-4 font-bold text-emerald-950">{log.studentName}</td>
+                          <td className="px-5 py-4 text-slate-500">{log.date}</td>
+                          <td className="px-5 py-4 font-medium text-slate-700">{log.duration}</td>
+                          <td className="px-5 py-4 text-slate-600">{log.topic}</td>
+                          <td className="px-5 py-4 text-center">
+                            <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-600 border border-amber-100 italic">
+                              ⭐ {log.rating}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 max-w-[200px] truncate text-slate-400 italic text-[11px]" title={log.notes}>
+                            {log.notes || "لا توجد ملاحظات"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-emerald-50 bg-slate-50/50 p-6 flex justify-end">
+              <button
+                onClick={() => setHistoryModal(null)}
+                className="rounded-xl bg-white border border-slate-200 px-8 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm"
+              >
+                إغلاق السجل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

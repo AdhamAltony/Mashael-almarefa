@@ -85,6 +85,12 @@ function AttendanceContent() {
                     const currentCount = parseInt(localStorage.getItem(`teacher_done_${teacherEmail}`) || "0");
                     localStorage.setItem(`teacher_done_${teacherEmail}`, (currentCount + 1).toString());
                     
+                    // 3. Save to Teacher's individual history for Admin review
+                    const teacherHistory = JSON.parse(localStorage.getItem(`teacher_history_${teacherEmail}`) || "[]");
+                    const studentName = students.find(s => s.email === formData.studentEmail)?.name || "طالب غير معروف";
+                    teacherHistory.push({ ...formData, studentName, timestamp: new Date().getTime() });
+                    localStorage.setItem(`teacher_history_${teacherEmail}`, JSON.stringify(teacherHistory));
+
                     // Also update Admin global sessions count
                     const adminTotal = parseInt(localStorage.getItem("admin_total_sessions") || "0");
                     localStorage.setItem("admin_total_sessions", (adminTotal + 1).toString());
