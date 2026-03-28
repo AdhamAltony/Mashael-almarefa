@@ -22,21 +22,45 @@ export default function CurriculaTeachersPage() {
     const [student, setStudent] = useState(null);
     const [assignedTeacher, setAssignedTeacher] = useState("");
     const [teachers, setTeachers] = useState([]);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         const fetchTeachers = async () => {
             const cookies = document.cookie.split("; ");
             const sessionCookie = cookies.find(c => c.startsWith("session="));
+            
+            // Fetch all users to get fresh data for both student and teachers (available for everyone)
+            const allUsers = await getLocalUsers();
+            
+            // Fetch and map curricula teachers
+            const curriculaTeachers = allUsers
+                .filter(u => u.role === "teacher" && (u.department?.includes("المناهج") || u.course?.includes("المناهج") || u.specialization?.includes("المناهج") || u.department?.includes("curricula")))
+                .map(u => {
+                    const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
+                    return {
+                        id: u.id,
+                        name: u.name,
+                        email: u.email,
+                        specialization: u.specialization || profile.specialization || u.course || "معلم مناهج",
+                        available: u.available || profile.available || "متاح للتواصل",
+                        phone: u.phone,
+                        rating: u.rating || profile.rating || "5.0",
+                        image: u.image || profile.image || "",
+                        bio: u.bio || profile.bio || `معلم متخصص في المناهج الدراسية، يمتلك مهارات عالية في التبسيط والتدريس.`,
+                        subjects: u.subjects || []
+                    };
+                });
+            setTeachers(curriculaTeachers);
+
             if (sessionCookie) {
                 try {
                     const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
                     const decoded = decodeURIComponent(atob(base64));
                     const sessionData = JSON.parse(decoded);
                     
-                    // Fetch all users to get fresh data for both student and teachers
-                    const allUsers = await getLocalUsers();
-                    
-                    // 1. Get fresh student data
+                    setIsLoggedIn(true);
+
+                    // Get fresh student data
                     const freshStudent = allUsers.find(u => u.email === sessionData.email);
                     if (freshStudent) {
                         setStudent(freshStudent);
@@ -45,26 +69,6 @@ export default function CurriculaTeachersPage() {
                         setStudent(sessionData);
                         if (sessionData.course) setCourse(sessionData.course);
                     }
-
-                    // 2. Fetch and map curricula teachers
-                    const curriculaTeachers = allUsers
-                        .filter(u => u.role === "teacher" && (u.department?.includes("المناهج") || u.course?.includes("المناهج") || u.specialization?.includes("المناهج") || u.department?.includes("curricula")))
-                        .map(u => {
-                            const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
-                            return {
-                                id: u.id,
-                                name: u.name,
-                                email: u.email,
-                                specialization: u.specialization || profile.specialization || u.course || "معلم مناهج",
-                                available: u.available || profile.available || "متاح للتواصل",
-                                phone: u.phone,
-                                rating: u.rating || profile.rating || "5.0",
-                                image: u.image || profile.image || "",
-                                bio: u.bio || profile.bio || `معلم متخصص في المناهج الدراسية، يمتلك مهارات عالية في التبسيط والتدريس.`,
-                                subjects: u.subjects || []
-                            };
-                        });
-                    setTeachers(curriculaTeachers);
 
                     const studentProf = localStorage.getItem(`student_profile_${sessionData.email}`);
                     if (studentProf) {
@@ -216,21 +220,23 @@ export default function CurriculaTeachersPage() {
 
                                         {/* Card Footer (Action) */}
                                         <div className="p-6 pt-0 mt-auto flex flex-col gap-2">
-                                            <button
-                                                onClick={() => handleSubscribe(teacher.name, teacher.email)}
-                                                className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${assignedTeacher === teacher.name
-                                                        ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
-                                                        : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
-                                                    }`}
-                                            >
-                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
-                                                </svg>
-                                                {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
-                                            </button>
+                                            {isLoggedIn && (
+                                                <button
+                                                    onClick={() => handleSubscribe(teacher.name, teacher.email)}
+                                                    className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${assignedTeacher === teacher.name
+                                                            ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
+                                                            : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
+                                                        }`}
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+                                                    </svg>
+                                                    {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
+                                                </button>
+                                            )}
 
                                             <a
-                                                href={`https://wa.me/${teacher.phone}?text=مرحباً أستاذ ${teacher.name}، أنا طالب في منصة مشاعل المعرفة وأود الاستفسار عن التسجيل في حلقاتكم لمادة ${selectedSubject.name}.`}
+                                                href={`https://wa.me/201210212176?text=مرحباً، أود الاستفسار عن التسجيل مع الأستاذ ${teacher.name} في مادة ${selectedSubject.name}.`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-50"

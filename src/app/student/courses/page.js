@@ -78,7 +78,23 @@ export default function StudentCoursesPage() {
                 </p>
             </header>
 
-            {assignedCourses.length === 0 ? (
+            {!user ? (
+                <div className="modern-card flex flex-col items-center justify-center py-24 text-center rounded-[3rem] bg-white/60 border border-white shadow-xl">
+                    <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-amber-50 text-amber-500 shadow-inner">
+                        <svg className="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-black text-emerald-950">يرجى تسجيل الدخول أولاً</h2>
+                    <p className="mt-3 max-w-sm text-slate-500 font-medium leading-relaxed">
+                        يجب عليك تسجيل الدخول أو إنشاء حساب جديد لتتمكن من الوصول إلى الدورات التعليمية والدروس المسجلة.
+                    </p>
+                    <div className="mt-8 flex gap-4">
+                        <Link href="/auth/login" className="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-700 transition-all">تسجيل الدخول</Link>
+                        <Link href="/auth/signup" className="px-8 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-2xl font-black hover:bg-emerald-50 transition-all">إنشاء حساب</Link>
+                    </div>
+                </div>
+            ) : assignedCourses.length === 0 ? (
                 <div className="modern-card flex flex-col items-center justify-center py-24 text-center rounded-[3rem] bg-white/60 border border-white shadow-xl">
                     <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 text-emerald-200 shadow-inner">
                         <svg className="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

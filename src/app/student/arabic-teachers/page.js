@@ -10,38 +10,41 @@ export default function ArabicTeachersPage() {
     const [student, setStudent] = useState(null);
     const [assignedTeacher, setAssignedTeacher] = useState("");
     const [teachers, setTeachers] = useState([]);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         const fetchTeachers = async () => {
             const cookies = document.cookie.split("; ");
             const sessionCookie = cookies.find(c => c.startsWith("session="));
+
+            // 1. Fetch real teachers from Supabase via getLocalUsers (available for everyone)
+            const allUsers = await getLocalUsers();
+            const arabicTeachers = allUsers
+                .filter(u => u.role === "teacher" && (u.department?.includes("العربية") || u.course?.includes("العربية") || u.department?.includes("arabic")))
+                .map(u => {
+                    const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
+                    return {
+                        id: u.id,
+                        name: u.name,
+                        email: u.email,
+                        specialization: u.specialization || profile.specialization || "لغة عربية",
+                        available: u.available || profile.available || "متاح للتواصل",
+                        phone: u.phone,
+                        rating: u.rating || profile.rating || "5.0",
+                        image: u.image || profile.image || "",
+                        bio: u.bio || profile.bio || `معلم متميز في العربية لغير الناطقين بها، يمتلك مهارات عالية في التواصل والتدريس بأساليب مبتكرة.`
+                    };
+                });
+            setTeachers(arabicTeachers);
+
             if (sessionCookie) {
                 try {
                     const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
                     const decoded = decodeURIComponent(atob(base64));
                     const data = JSON.parse(decoded);
                     setStudent(data);
+                    setIsLoggedIn(true);
                     if (data.course) setCourse(data.course);
-
-                    // Fetch real teachers from Supabase via getLocalUsers
-                    const allUsers = await getLocalUsers();
-                    const arabicTeachers = allUsers
-                        .filter(u => u.role === "teacher" && (u.department?.includes("العربية") || u.course?.includes("العربية") || u.department?.includes("arabic")))
-                        .map(u => {
-                            const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
-                            return {
-                                id: u.id,
-                                name: u.name,
-                                email: u.email,
-                                specialization: u.specialization || profile.specialization || "لغة عربية",
-                                available: u.available || profile.available || "متاح للتواصل",
-                                phone: u.phone,
-                                rating: u.rating || profile.rating || "5.0",
-                                image: u.image || profile.image || "",
-                                bio: u.bio || profile.bio || `معلم متميز في ${course}، يمتلك مهارات عالية في التواصل والتدريس بأساليب مبتكرة.`
-                            };
-                        });
-                    setTeachers(arabicTeachers);
 
                     const studentProf = localStorage.getItem(`student_profile_${data.email}`);
                     if (studentProf) {
@@ -159,21 +162,23 @@ export default function ArabicTeachersPage() {
 
                                 {/* Card Footer (Action) */}
                                 <div className="p-6 pt-0 mt-auto flex flex-col gap-2">
-                                    <button
-                                        onClick={() => handleSubscribe(teacher.name, teacher.email)}
-                                        className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${assignedTeacher === teacher.name
-                                                ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
-                                                : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
-                                            }`}
-                                    >
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
-                                        </svg>
-                                        {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
-                                    </button>
+                                    {isLoggedIn && (
+                                        <button
+                                            onClick={() => handleSubscribe(teacher.name, teacher.email)}
+                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${assignedTeacher === teacher.name
+                                                    ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
+                                                    : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
+                                                }`}
+                                        >
+                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+                                            </svg>
+                                            {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
+                                        </button>
+                                    )}
 
                                     <a
-                                        href={`https://wa.me/${teacher.phone}?text=مرحباً أستاذ ${teacher.name}، أنا طالب في منصة مشاعل المعرفة وأود الاستفسار عن التسجيل في حلقاتكم.`}
+                                        href={`https://wa.me/201210212176?text=مرحباً، أود الاستفسار عن التسجيل مع الأستاذ ${teacher.name} في قسم اللغة العربية.`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-green-500/30 transition-all hover:shadow-green-500/40 hover:from-green-400 hover:to-emerald-50"
