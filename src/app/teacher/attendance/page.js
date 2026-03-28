@@ -38,20 +38,44 @@ function AttendanceContent() {
                 const decoded = decodeURIComponent(atob(base64));
                 const sessionData = JSON.parse(decoded);
                 
-                let deptName = sessionData.department || "";
-                if (!deptName && sessionData.course) {
-                    if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
-                    else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
-                    else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
-                }
-                setDepartment(deptName);
-
                 const { getLocalUsers } = require("@/utils/local-db");
                 const allUsers = await getLocalUsers();
-                const filtered = allUsers.filter(u => 
-                    u.role === "student" && 
-                    (u.course === deptName || u.department === deptName)
-                );
+                
+                // 1. Get fresh teacher data
+                const freshTeacher = allUsers.find(u => u.email === sessionData.email);
+                if (!freshTeacher) {
+                    router.push("/auth/login");
+                    return;
+                }
+
+                let deptName = freshTeacher.department || "";
+                if (!deptName && freshTeacher.course) {
+                    if (freshTeacher.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
+                    else if (freshTeacher.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
+                    else if (freshTeacher.course.includes("المناهج")) deptName = "المناهج الدراسية";
+                }
+                setDepartment(deptName);
+                
+                const teacherSubjects = freshTeacher.subjects || [];
+
+                // 2. Filter students by department and shared subjects (for curricula)
+                const filtered = allUsers.filter(u => {
+                    if (u.role !== "student") return false;
+                    
+                    const studentDept = u.department || u.course || "";
+                    const isSameDept = studentDept === deptName || studentDept.includes(deptName) || (deptName && deptName.includes(studentDept));
+                    
+                    if (!isSameDept) return false;
+                    
+                    // If curricula, both must share at least one subject
+                    if (deptName === "المناهج الدراسية") {
+                        const studentSubjects = u.subjects || u.registered_subjects || [];
+                        return studentSubjects.some(s => teacherSubjects.includes(s));
+                    }
+                    
+                    return true;
+                });
+                
                 setStudents(filtered);
                 
                 if (initialEmail) {

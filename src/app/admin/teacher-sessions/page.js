@@ -1,36 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const INITIAL_TEACHERS = [
-  {
-    id: 1,
-    name: "أحمد عبد الله",
-    department: "ركن القرآن الكريم",
-    completedSessions: 45,
-    ratePerSession: 50,
-    amountReceived: 0,
-    status: "نشط",
-  },
-  {
-    id: 2,
-    name: "فاطمة محمد",
-    department: "العربية لغير الناطقين",
-    completedSessions: 32,
-    ratePerSession: 60,
-    amountReceived: 0,
-    status: "نشط",
-  },
-  {
-    id: 3,
-    name: "محمود حسن",
-    department: "المناهج الدراسية",
-    completedSessions: 28,
-    ratePerSession: 40,
-    amountReceived: 0,
-    status: "إجازة",
-  },
-];
+import { getLocalUsers } from "@/utils/local-db";
 
 export default function AdminTeacherSessionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,33 +10,36 @@ export default function AdminTeacherSessionsPage() {
   const [historyModal, setHistoryModal] = useState(null);
 
   useEffect(() => {
-    setMounted(true);
-    // Fetch real teachers from app_users
-    const allUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
-    const realTeachers = allUsers.filter(u => u.role === "teacher");
+    const fetchTeachers = async () => {
+      setMounted(true);
+      // Fetch real teachers from local-db
+      const allUsers = await getLocalUsers();
+      const realTeachers = allUsers.filter(u => u.role === "teacher");
 
-    // Load financial settings (rate and amount received)
-    const savedFinancials = JSON.parse(localStorage.getItem("admin_teachers_financials") || "{}");
+      // Load financial settings (rate and amount received)
+      const savedFinancials = JSON.parse(localStorage.getItem("admin_teachers_financials") || "{}");
 
-    const teachersData = realTeachers.map(u => {
-      const profile = JSON.parse(localStorage.getItem(`teacher_profile_${u.email}`) || "{}");
-      const sessions = parseInt(localStorage.getItem(`teacher_done_${u.email}`) || "0");
-      const financial = savedFinancials[u.email] || { rate: 50, received: 0 };
+      const teachersData = realTeachers.map(u => {
+        const sessions = parseInt(localStorage.getItem(`teacher_done_${u.email}`) || "0");
+        const financial = savedFinancials[u.email] || { rate: 50, received: 0 };
 
-      return {
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        department: u.course || u.department || "عام",
-        completedSessions: sessions,
-        ratePerSession: financial.rate,
-        amountReceived: financial.received,
-        image: profile.image || "",
-        status: profile.status || "نشط",
-      };
-    });
+        return {
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          department: u.course || u.department || "عام",
+          completedSessions: sessions,
+          ratePerSession: financial.rate,
+          amountReceived: financial.received,
+          image: u.image || "",
+          status: u.status || "نشط",
+        };
+      });
 
-    setTeachers(teachersData);
+      setTeachers(teachersData);
+    };
+    
+    fetchTeachers();
   }, []);
 
   const handleUpdate = (email, field, value) => {
@@ -93,7 +67,7 @@ export default function AdminTeacherSessionsPage() {
   if (!mounted) return null;
 
   return (
-    <main className="site-container py-10" dir="rtl">
+    <main className="mx-auto w-full max-w-[95%] px-4 py-10 sm:px-8" dir="rtl">
       <section className="modern-card mb-8 rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 sm:p-8">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>

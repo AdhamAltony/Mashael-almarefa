@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
     };
 
     return (
-        <main className="site-container min-h-screen py-10" dir="rtl">
+        <main className="mx-auto min-h-screen w-full max-w-[95%] px-4 py-10 sm:px-8" dir="rtl">
             <div className="mb-8 text-center sm:text-right">
                 <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                     لوحة الإدارة
