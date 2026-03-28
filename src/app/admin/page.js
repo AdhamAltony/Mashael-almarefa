@@ -78,8 +78,13 @@ export default function AdminUsersPage() {
     };
 
     const toggleTeacherStatus = async (user) => {
-        const currentStatus = user.status || "نشط";
+        const profileKey = `teacher_profile_${user.email}`;
+        const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+        const currentStatus = user.status || profile.status || "نشط";
         const newStatus = currentStatus === "إجازة" ? "نشط" : "إجازة";
+        
+        profile.status = newStatus;
+        localStorage.setItem(profileKey, JSON.stringify(profile));
         
         await updateUser({ ...user, status: newStatus });
         

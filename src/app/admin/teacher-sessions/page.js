@@ -61,7 +61,7 @@ export default function AdminTeacherSessionsPage() {
         ratePerSession: financial.rate,
         amountReceived: financial.received,
         image: profile.image || "",
-        status: profile.available || "نشط",
+        status: profile.status || "نشط",
       };
     });
 
