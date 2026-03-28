@@ -7,12 +7,12 @@ export default function TeacherBio({ bio }) {
     if (!bio) return null;
 
     // We show the "Read More" button if the bio is long enough to potentially exceed 3 lines
-    // 120 characters is a safe threshold for most cards to reach ~3 lines
-    const isLong = bio.length > 120;
+    // 90 characters or 2+ newlines is a safe threshold for most cards
+    const isLong = bio.length > 90 || (bio.match(/\n/g) || []).length >= 2;
 
     return (
         <div className="flex flex-col">
-            <p className={`text-sm text-slate-600 leading-relaxed ${!isExpanded ? 'line-clamp-3' : ''}`}>
+            <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-wrap ${!isExpanded ? 'line-clamp-3' : ''}`}>
                 {bio}
             </p>
             {isLong && (
