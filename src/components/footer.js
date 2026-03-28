@@ -24,7 +24,7 @@ export default function Footer() {
                                 </div>
                                 <div className="flex flex-col md:items-end text-center md:text-right">
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/50 mb-0.5">البريد الإلكتروني</span>
-                                    <span className="text-sm font-medium tracking-wide">mashaeilaleilm@gmail.com</span>
+                                    <span className="text-sm font-medium tracking-wide">mashaeilalmaerifa@gmail.com</span>
                                 </div>
                             </div>
 
