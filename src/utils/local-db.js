@@ -6,25 +6,38 @@ import { supabase } from './supabase-client';
 let cachedUsers = null;
 
 const mapUserFromSupabase = (u) => {
-    // 1. Determine common mapping
-    let redirect = u.redirect_url;
+    // 1. Flatten profile data if present (from join)
+    const studentProfile = u.students_profile?.[0] || u.students_profile || {};
+    const teacherProfile = u.teachers_profile?.[0] || u.teachers_profile || {};
+    const profile = u.role === 'teacher' ? teacherProfile : studentProfile;
+    
+    // Combine everything
+    const combined = { ...u, ...profile };
+
+    // 2. Determine redirect URL
+    let redirect = combined.redirect_url;
     if (!redirect) {
-        if (u.role === "admin") redirect = "/admin/dashboard";
-        else if (u.role === "teacher") redirect = "/teacher/profile";
-        else if (u.role === "student") redirect = "/student/profile";
+        if (combined.role === "admin") redirect = "/admin/dashboard";
+        else if (combined.role === "teacher") redirect = "/teacher/profile";
+        else if (combined.role === "student") redirect = "/student/profile";
         else redirect = "/";
     }
 
-    // 2. Construction flat object for UI (Using columns identified in your DB)
+    // 3. Construct flat object for UI
     return {
-        ...u,
-        name: u.name || "",
-        image: u.photo_url || "",
+        ...combined,
+        id: combined.id || combined.user_id,
+        name: combined.name || combined.full_name || "",
+        image: combined.photo_url || combined.image || "",
         redirect: redirect,
-        phone: u.phone || "",
-        course: u.course || "",
-        status: u.status || "نشط",
-        joinDate: u.join_date ? new Date(u.join_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : ""
+        phone: combined.phone || "",
+        course: combined.course || combined.department || "",
+        status: combined.status || "نشط",
+        guardian: combined.guardian_name || combined.guardian || "",
+        guardianPhone: combined.guardian_phone || combined.guardianPhone || "",
+        country: combined.country || "",
+        age: combined.age || "",
+        joinDate: combined.join_date ? new Date(combined.join_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : ""
     };
 };
 
@@ -59,8 +72,14 @@ export const getLocalUsers = async (forceRefresh = false) => {
     if (cachedUsers && !forceRefresh) return cachedUsers;
 
     try {
-        // Simple and fast: Your 'users' table already contains all necessary list fields
-        const { data, error } = await supabase.from('users').select('*');
+        // Fetch users with their profiles to get guardian, country, and other specific fields
+        const { data, error } = await supabase
+            .from('users')
+            .select(`
+                *,
+                students_profile (*),
+                teachers_profile (*)
+            `);
         
         if (error) {
             console.error('Supabase getLocalUsers Error:', error.message);
@@ -107,7 +126,8 @@ export const saveUser = async (user) => {
                 guardian_name: user.guardian || "",
                 guardian_phone: user.guardianPhone || "",
                 department: user.department || user.course || "",
-                registered_subjects: user.subjects || []
+                registered_subjects: user.subjects || [],
+                country: user.country || ""
             }]);
         }
 
@@ -134,9 +154,22 @@ export const deleteUser = async (id, email) => {
         // 2. Local Cleanup (Only in browser)
         cachedUsers = null;
         if (email && typeof window !== 'undefined') {
+            // Find and remove all keys ending with the email
             localStorage.removeItem(`sessions_${email}`);
             localStorage.removeItem(`progress_${email}`);
             localStorage.removeItem(`assigned_courses_${email}`);
+            localStorage.removeItem(`student_profile_${email}`);
+            localStorage.removeItem(`teacher_profile_${email}`);
+            localStorage.removeItem(`teacher_portfolio_${email}`);
+            
+            // Clean up any session-based localStorage items
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.includes(email)) {
+                    localStorage.removeItem(key);
+                    i--; // Adjust index after removal
+                }
+            }
         }
     } catch (error) {
         console.error('Failed to Delete User:', error.message || error);
@@ -169,7 +202,8 @@ export const updateUser = async (updatedUser) => {
                 department: updatedUser.course || updatedUser.department,
                 guardian_name: updatedUser.guardian,
                 guardian_phone: updatedUser.guardianPhone,
-                registered_subjects: updatedUser.subjects
+                registered_subjects: updatedUser.subjects,
+                country: updatedUser.country
             }).eq('user_id', updatedUser.id);
         }
     } catch (error) {

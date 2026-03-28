@@ -94,8 +94,8 @@ export default function StudentProfilePage() {
                   }
               }
               setStudent({
-                  ...initialFromSession,
                   ...parsedLocal,
+                  ...initialFromSession, // DB Data takes absolute priority!
                   assignedTeacherImage: teacherImage
               });
           } else {
