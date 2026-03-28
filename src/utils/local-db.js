@@ -5,6 +5,13 @@ import { supabase } from './supabase-client';
  */
 let cachedUsers = null;
 
+const getSupabaseOrWarn = (operation) => {
+    if (supabase) return supabase;
+
+    console.warn(`Skipping ${operation}: Supabase environment variables are not configured.`);
+    return null;
+};
+
 const mapUserFromSupabase = (u) => {
     // 1. Determine common mapping
     let redirect = u.redirect_url;
@@ -58,9 +65,12 @@ export const getLocalUsers = async (forceRefresh = false) => {
     // Return cached data instantly if available
     if (cachedUsers && !forceRefresh) return cachedUsers;
 
+    const client = getSupabaseOrWarn("getLocalUsers");
+    if (!client) return [];
+
     try {
         // Simple and fast: Your 'users' table already contains all necessary list fields
-        const { data, error } = await supabase.from('users').select('*');
+        const { data, error } = await client.from('users').select('*');
         
         if (error) {
             console.error('Supabase getLocalUsers Error:', error.message);
@@ -76,12 +86,15 @@ export const getLocalUsers = async (forceRefresh = false) => {
 };
 
 export const saveUser = async (user) => {
+    const client = getSupabaseOrWarn("saveUser");
+    if (!client) return null;
+
     try {
         cachedUsers = null; // Reset cache
 
         // 1. Insert into core users table
         const suUser = mapUserToSupabase(user);
-        const { data, error } = await supabase.from('users').insert([suUser]).select();
+        const { data, error } = await client.from('users').insert([suUser]).select();
         
         if (error) {
             console.error('Supabase Registration Error:', error.message);
@@ -92,7 +105,7 @@ export const saveUser = async (user) => {
 
         // 2. Insert into profile table (Using 'students_profile' and 'teachers_profile')
         if (user.role === 'teacher') {
-            await supabase.from('teachers_profile').insert([{
+            await client.from('teachers_profile').insert([{
                 user_id: newUser.id,
                 specialization: user.course || "",
                 bio: user.bio || "",
@@ -101,7 +114,7 @@ export const saveUser = async (user) => {
                 rate_per_session: 0
             }]);
         } else if (user.role === 'student') {
-            await supabase.from('students_profile').insert([{
+            await client.from('students_profile').insert([{
                 user_id: newUser.id,
                 student_code: `STD-${Math.floor(10000 + Math.random() * 90000)}`,
                 guardian_name: user.guardian || "",
@@ -119,9 +132,12 @@ export const saveUser = async (user) => {
 };
 
 export const deleteUser = async (id, email) => {
+    const client = getSupabaseOrWarn("deleteUser");
+    if (!client) return;
+
     try {
         // Robust delete from the parent users table
-        const { error } = await supabase
+        const { error } = await client
             .from('users')
             .delete()
             .eq('id', id);
@@ -144,12 +160,15 @@ export const deleteUser = async (id, email) => {
 };
 
 export const updateUser = async (updatedUser) => {
+    const client = getSupabaseOrWarn("updateUser");
+    if (!client) return;
+
     try {
         cachedUsers = null;
 
         // 1. Update core table
         const suUpdate = mapUserToSupabase(updatedUser);
-        const { error } = await supabase
+        const { error } = await client
             .from('users')
             .update(suUpdate)
             .eq('id', updatedUser.id);
@@ -158,14 +177,14 @@ export const updateUser = async (updatedUser) => {
 
         // 2. Update profiles (Using your schema table names)
         if (updatedUser.role === 'teacher') {
-            await supabase.from('teachers_profile').update({
+            await client.from('teachers_profile').update({
                 specialization: updatedUser.course,
                 bio: updatedUser.bio,
                 is_on_leave: updatedUser.status === "إجازة",
                 rating: updatedUser.rating
             }).eq('user_id', updatedUser.id);
         } else if (updatedUser.role === 'student') {
-            await supabase.from('students_profile').update({
+            await client.from('students_profile').update({
                 department: updatedUser.course || updatedUser.department,
                 guardian_name: updatedUser.guardian,
                 guardian_phone: updatedUser.guardianPhone,

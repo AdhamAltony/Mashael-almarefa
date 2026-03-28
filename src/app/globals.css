@@ -3,6 +3,7 @@
 :root {
   --background: #f0f8f8;
   --foreground: #0f1720;
+  --font-cairo: "Tahoma", "Arial", "Segoe UI", sans-serif;
   --ink-950: #021520;
   --ink-900: #0a2a3a;
   --emerald-50: #eefcfb;
