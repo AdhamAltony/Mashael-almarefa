@@ -75,13 +75,8 @@ export default function TeacherProfilePage() {
                     if (savedProfile) {
                         const parsed = JSON.parse(savedProfile);
                         setProfile({
-                            ...initialProfile,
                             ...parsed,
-                            // Ensure official record attributes take absolute precedence
-                            name: initialProfile.name,
-                            department: initialProfile.department,
-                            selectedSubjects: initialProfile.selectedSubjects,
-                            specialization: initialProfile.specialization
+                            ...initialProfile, // Database record takes absolute priority!
                         });
                     } else {
                         setProfile(initialProfile);
