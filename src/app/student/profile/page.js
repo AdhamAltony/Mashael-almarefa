@@ -177,6 +177,10 @@ export default function StudentProfilePage() {
           // 4. Update Supabase immediately
           await updateUser(updatedStudent);
           
+          // 5. Update session cookie
+          const base64 = btoa(encodeURIComponent(JSON.stringify(updatedStudent)));
+          document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
+          
           // Notify Navbar
           window.dispatchEvent(new Event('profileUpdate'));
           
@@ -192,16 +196,29 @@ export default function StudentProfilePage() {
   const handleSave = async (e) => {
     e.preventDefault();
     
-    // Update Supabase
-    await updateUser({
+    // Recalculate level for display and DB
+    const levelStr = `${student.department}${student.subjects?.length > 0 ? ` - (${student.subjects.join("، ")})` : ""}`;
+    
+    const finalStudent = {
       ...student,
+      course: student.department, // Ensure course matches department for DB consistency
+      level: levelStr,
       role: "student"
-    });
+    };
+
+    // Update Supabase
+    await updateUser(finalStudent);
+
+    // Update state to show new level/course immediately
+    setStudent(finalStudent);
 
     // Update individual profile file (Local cache)
-    localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(student));
+    localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(finalStudent));
     
     // Sync navbar and local display
+    const base64 = btoa(encodeURIComponent(JSON.stringify(finalStudent)));
+    document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
+    
     window.dispatchEvent(new Event('profileUpdate'));
     setIsEditing(false);
     setSaved(true);
@@ -347,7 +364,18 @@ export default function StudentProfilePage() {
                                 onChange={(e) => {
                                     const deptId = e.target.value;
                                     const deptName = DEPARTMENTS.find(d => d.id === deptId)?.name || deptId;
-                                    setStudent(prev => ({ ...prev, department: deptName }));
+                                    
+                                    // Robust check: clear subjects if switching away from curricula
+                                    const updatedSubjects = deptId === "curricula" ? (student.subjects || []) : [];
+                                    const newLevel = `${deptName}${updatedSubjects.length > 0 ? ` - (${updatedSubjects.join("، ")})` : ""}`;
+                                    
+                                    setStudent(prev => ({ 
+                                        ...prev, 
+                                        department: deptName, 
+                                        course: deptName,
+                                        subjects: updatedSubjects, // clear if needed
+                                        level: newLevel 
+                                    }));
                                 }}
                                 className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all appearance-none"
                             >
@@ -370,7 +398,8 @@ export default function StudentProfilePage() {
                                                 const updated = e.target.checked
                                                     ? [...(student.subjects || []), sub.name]
                                                     : (student.subjects || []).filter(s => s !== sub.name);
-                                                setStudent(prev => ({ ...prev, subjects: updated }));
+                                                const newLevel = `${student.department}${updated.length > 0 ? ` - (${updated.join("، ")})` : ""}`;
+                                                setStudent(prev => ({ ...prev, subjects: updated, level: newLevel }));
                                             }}
                                             className="h-4 w-4 rounded accent-emerald-600"
                                         />

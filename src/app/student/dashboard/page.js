@@ -75,7 +75,9 @@ export default function StudentDashboardPage() {
               لوحة الطالب
             </p>
             <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">مرحبًا {studentName}</h1>
-            <p className="mt-2 text-sm text-slate-600">متابعة تقدمك الأكاديمي وحصصك القادمة في مكان واحد.</p>
+            <p className="mt-2 text-sm text-slate-600">
+              قسم: <span className="font-bold text-emerald-800">{session?.department || session?.course || "بوابتك"}</span>
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
