@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
                                                 </div>
                                             </td>
                                             <td className="py-4 pl-4">
-                                                <span className="text-xs font-mono font-bold text-emerald-800">#{user.id}</span>
+                                                <span className="text-xs font-mono font-bold text-emerald-800">#{user.memberNumber || user.id.slice(0, 8)}</span>
                                             </td>
                                             <td className="py-4 pl-4">
                                                 <div className="flex flex-col gap-1 items-start">

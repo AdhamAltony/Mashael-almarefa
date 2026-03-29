@@ -50,7 +50,8 @@ const mapUserFromSupabase = (u) => {
         guardianPhone: combined.guardian_phone || combined.guardianPhone || "",
         country: combined.country || "",
         age: combined.age || "",
-        joinDate: combined.join_date ? new Date(combined.join_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : ""
+        joinDate: combined.join_date ? new Date(combined.join_date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }) : "",
+        memberNumber: combined.student_code || combined.teacher_code || (combined.id || combined.user_id || "").slice(0, 8)
     };
 };
 
@@ -141,6 +142,7 @@ export const saveUser = async (user) => {
             }
             await client.from('teachers_profile').insert([{
                 user_id: newUser.id,
+                teacher_code: `TEA-${Math.floor(10000 + Math.random() * 90000)}`,
                 specialization: spec,
                 bio: user.bio || "",
                 is_on_leave: user.status === "إجازة",
