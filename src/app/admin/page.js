@@ -23,6 +23,13 @@ export default function AdminUsersPage() {
     const [toast, setToast] = useState(null);
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
+    
+    // Course Management State
+    const [editingCourse, setEditingCourse] = useState(null);
+    const [editCourseForm, setEditCourseForm] = useState("");
+    const [courseToDelete, setCourseToDelete] = useState(null);
+    const [isAddingCourse, setIsAddingCourse] = useState(false);
+    const [newCourseName, setNewCourseName] = useState("");
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -114,6 +121,63 @@ export default function AdminUsersPage() {
         );
     };
 
+    // Course Management Handlers
+    const openEditCourseModal = (course) => {
+        setEditingCourse(course);
+        setEditCourseForm(course);
+    };
+
+    const handleSaveCourseEdit = (e) => {
+        e.preventDefault();
+        const updatedCourses = allCourses.map(c => c === editingCourse ? editCourseForm : c);
+        setAllCourses(updatedCourses);
+        localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+        
+        // Also update videos if needed (optional based on user request, but good for consistency)
+        const savedVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
+        const updatedVideos = savedVideos.map(v => v.title === editingCourse ? { ...v, title: editCourseForm } : v);
+        localStorage.setItem("platform_videos", JSON.stringify(updatedVideos));
+
+        setEditingCourse(null);
+        setToast({ message: "تم تحديث اسم الدورة بنجاح", type: "success" });
+        setTimeout(() => setToast(null), 3000);
+    };
+
+    const confirmDeleteCourse = () => {
+        const updatedCourses = allCourses.filter(c => c !== courseToDelete);
+        setAllCourses(updatedCourses);
+        localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+        
+        // Also remove associated videos if desired? The user said "احذفها خالص"
+        const savedVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
+        const updatedVideos = savedVideos.filter(v => v.title !== courseToDelete);
+        localStorage.setItem("platform_videos", JSON.stringify(updatedVideos));
+
+        setCourseToDelete(null);
+        setToast({ message: "تم حذف الدورة بنجاح", type: "success" });
+        setTimeout(() => setToast(null), 3000);
+    };
+
+    const handleAddCourse = (e) => {
+        e.preventDefault();
+        if (!newCourseName.trim()) return;
+        
+        if (allCourses.includes(newCourseName)) {
+            setToast({ message: "هذه الدورة موجودة بالفعل", type: "error" });
+            setTimeout(() => setToast(null), 3000);
+            return;
+        }
+
+        const updatedCourses = [...allCourses, newCourseName];
+        setAllCourses(updatedCourses);
+        localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+        
+        setNewCourseName("");
+        setIsAddingCourse(false);
+        setToast({ message: "تم إضافة الدورة بنجاح", type: "success" });
+        setTimeout(() => setToast(null), 3000);
+    };
+
     return (
         <main className="site-container min-h-screen py-10" dir="rtl">
             <div className="mb-8 text-center sm:text-right">
@@ -148,133 +212,208 @@ export default function AdminUsersPage() {
                     >
                         المعلمون
                     </button>
+                    <button
+                        onClick={() => setActiveTab("courses")}
+                        className={`flex-1 rounded-xl py-3 text-sm font-bold transition-all ${activeTab === "courses"
+                            ? "bg-white text-emerald-700 shadow-sm"
+                            : "text-slate-500 hover:text-emerald-700 hover:bg-emerald-50"
+                            }`}
+                    >
+                        الدورات
+                    </button>
                 </div>
 
                 {/* Users Table / List */}
                 <div className="overflow-x-auto">
-                    <table className="w-full text-right text-sm">
-                        <thead>
-                            <tr className="border-b border-emerald-100 text-emerald-900">
-                                <th className="py-4 pl-4 font-bold">بيانات العضو</th>
-                                <th className="py-4 pl-4 font-bold">رقم العضو</th>
-                                <th className="py-4 pl-4 font-bold">القسم / المسار</th>
-                                {activeTab === "student" ? (
-                                    <th className="py-4 pl-4 font-bold">الدورات</th>
-                                ) : (
-                                    <th className="py-4 pl-4 font-bold">الحالة</th>
-                                )}
-                                <th className="py-4 font-bold w-32">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-emerald-50/50">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="5" className="py-12 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
-                                            <p className="text-sm font-bold text-emerald-800 animate-pulse">جاري تحميل البيانات...</p>
-                                        </div>
-                                    </td>
+                    {activeTab === "courses" ? (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-lg font-bold text-emerald-900">قائمة الدورات المتاحة</h3>
+                                <button 
+                                    onClick={() => setIsAddingCourse(true)}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:-translate-y-0.5"
+                                >
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    إضافة دورة جديدة
+                                </button>
+                            </div>
+                            <table className="w-full text-right text-sm">
+                            <thead>
+                                <tr className="border-b border-emerald-100 text-emerald-900">
+                                    <th className="py-4 pl-4 font-bold">اسم الدورة</th>
+                                    <th className="py-4 pl-4 font-bold">عدد الفيديوهات</th>
+                                    <th className="py-4 font-bold w-32">الإجراءات</th>
                                 </tr>
-                            ) : filteredUsers.length > 0 ? (
-                                filteredUsers.map((user) => {
-                                    const userImage = user.image || "";
-                                    const status = user.status || "نشط";
+                            </thead>
+                            <tbody className="divide-y divide-emerald-50/50">
+                                {allCourses.length > 0 ? (
+                                    allCourses.map((course, index) => {
+                                        const videoCount = JSON.parse(localStorage.getItem("platform_videos") || "[]").filter(v => v.title === course).length;
+                                        return (
+                                            <tr key={index} className="group transition-colors hover:bg-emerald-50/30">
+                                                <td className="py-4 pl-4 font-bold text-emerald-950">{course}</td>
+                                                <td className="py-4 pl-4 text-slate-500">{videoCount} فيديوهات</td>
+                                                <td className="py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => openEditCourseModal(course)}
+                                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
+                                                            title="تعديل الاسم"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setCourseToDelete(course)}
+                                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
+                                                            title="حذف الدورة"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="3" className="py-8 text-center text-slate-500">
+                                            لا توجد دورات حاليًا.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                        </div>
+                    ) : (
+                        <table className="w-full text-right text-sm">
+                            <thead>
+                                <tr className="border-b border-emerald-100 text-emerald-900">
+                                    <th className="py-4 pl-4 font-bold">بيانات العضو</th>
+                                    <th className="py-4 pl-4 font-bold">رقم العضو</th>
+                                    <th className="py-4 pl-4 font-bold">القسم / المسار</th>
+                                    {activeTab === "student" ? (
+                                        <th className="py-4 pl-4 font-bold">الدورات</th>
+                                    ) : (
+                                        <th className="py-4 pl-4 font-bold">الحالة</th>
+                                    )}
+                                    <th className="py-4 font-bold w-32">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-emerald-50/50">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="5" className="py-12 text-center">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+                                                <p className="text-sm font-bold text-emerald-800 animate-pulse">جاري تحميل البيانات...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : filteredUsers.length > 0 ? (
+                                    filteredUsers.map((user) => {
+                                        const userImage = user.image || "";
+                                        const status = user.status || "نشط";
 
-                                    return (
-                                        <tr key={user.id} className="group transition-colors hover:bg-emerald-50/30">
-                                            <td className="py-4 pl-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-emerald-100 border border-emerald-200">
-                                                        {userImage ? (
-                                                            <img src={userImage} alt={user.name} className="h-full w-full object-cover" />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center font-bold text-emerald-600">
-                                                                {user.name.charAt(0)}
-                                                            </div>
+                                        return (
+                                            <tr key={user.id} className="group transition-colors hover:bg-emerald-50/30">
+                                                <td className="py-4 pl-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-emerald-100 border border-emerald-200">
+                                                            {userImage ? (
+                                                                <img src={userImage} alt={user.name} className="h-full w-full object-cover" />
+                                                            ) : (
+                                                                <div className="flex h-full w-full items-center justify-center font-bold text-emerald-600">
+                                                                    {user.name.charAt(0)}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-emerald-950">{user.name}</span>
+                                                            <span className="text-[10px] text-slate-500">{user.email}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 pl-4">
+                                                    <span className="text-xs font-mono font-bold text-emerald-800">#{user.memberNumber || user.id.slice(0, 8)}</span>
+                                                </td>
+                                                <td className="py-4 pl-4">
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                                                            {user.course || user.department}
+                                                        </span>
+                                                        {(user.course === "المناهج الدراسية" || user.department === "المناهج الدراسية") && (user.subjects?.length > 0 || user.registered_subjects?.length > 0) && (
+                                                            <span className="text-[10px] font-bold text-slate-500 mr-1">
+                                                                ({(user.subjects || user.registered_subjects).join("، ")})
+                                                            </span>
                                                         )}
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-emerald-950">{user.name}</span>
-                                                        <span className="text-[10px] text-slate-500">{user.email}</span>
+                                                </td>
+                                                {activeTab === "student" ? (
+                                                    <td className="py-4 pl-4">
+                                                        <button
+                                                            onClick={() => openAssignModal(user)}
+                                                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-50"
+                                                        >
+                                                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                            </svg>
+                                                            {mounted && localStorage.getItem(`assigned_courses_${user.email}`) ? "تعديل الدورات" : "إتاحة دورات"}
+                                                        </button>
+                                                    </td>
+                                                ) : (
+                                                    <td className="py-4 pl-4">
+                                                        <button
+                                                            onClick={() => toggleTeacherStatus(user)}
+                                                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${status === "إجازة" || status.includes("غير متاح")
+                                                                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                                                : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                                                }`}>
+                                                            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                                                            {status}
+                                                        </button>
+                                                    </td>
+                                                )}
+                                                <td className="py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => openEditModal(user)}
+                                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
+                                                            title="تعديل"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(user.id, user.email)}
+                                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
+                                                            title="حذف"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="py-4 pl-4">
-                                                <span className="text-xs font-mono font-bold text-emerald-800">#{user.memberNumber || user.id.slice(0, 8)}</span>
-                                            </td>
-                                            <td className="py-4 pl-4">
-                                                <div className="flex flex-col gap-1 items-start">
-                                                    <span className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                                                        {user.course || user.department}
-                                                    </span>
-                                                    {(user.course === "المناهج الدراسية" || user.department === "المناهج الدراسية") && (user.subjects?.length > 0 || user.registered_subjects?.length > 0) && (
-                                                        <span className="text-[10px] font-bold text-slate-500 mr-1">
-                                                            ({(user.subjects || user.registered_subjects).join("، ")})
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            {activeTab === "student" ? (
-                                                <td className="py-4 pl-4">
-                                                    <button
-                                                        onClick={() => openAssignModal(user)}
-                                                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-50"
-                                                    >
-                                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                        </svg>
-                                                        {mounted && localStorage.getItem(`assigned_courses_${user.email}`) ? "تعديل الدورات" : "إتاحة دورات"}
-                                                    </button>
                                                 </td>
-                                            ) : (
-                                                <td className="py-4 pl-4">
-                                                    <button 
-                                                        onClick={() => toggleTeacherStatus(user)}
-                                                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${
-                                                        status === "إجازة" || status.includes("غير متاح")
-                                                        ? "bg-amber-100 text-amber-700 border border-amber-200"
-                                                        : "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                                                    }`}>
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                                                        {status}
-                                                    </button>
-                                                </td>
-                                            )}
-                                            <td className="py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => openEditModal(user)}
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
-                                                        title="تعديل"
-                                                    >
-                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(user.id, user.email)}
-                                                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
-                                                        title="حذف"
-                                                    >
-                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td colSpan="5" className="py-8 text-center text-slate-500">
-                                        لا يوجد أعضاء في هذا القسم حاليًا.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" className="py-8 text-center text-slate-500">
+                                            لا يوجد أعضاء في هذا القسم حاليًا.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 
@@ -445,6 +584,112 @@ export default function AdminUsersPage() {
                             </svg>
                         </div>
                         <span className="font-bold text-sm">{toast.message}</span>
+                    </div>
+                </div>
+            )}
+            {/* Edit Course Modal */}
+            {editingCourse && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/40 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="modern-card w-full max-w-md rounded-3xl border border-white p-6 shadow-2xl bg-white sm:p-8 animate-in zoom-in-95">
+                        <h2 className="mb-6 text-2xl font-black text-emerald-950">تعديل اسم الدورة</h2>
+                        <form onSubmit={handleSaveCourseEdit} className="space-y-4">
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-emerald-900">الاسم الجديد</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editCourseForm}
+                                    onChange={(e) => setEditCourseForm(e.target.value)}
+                                    className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
+                                />
+                            </div>
+                            <div className="mt-6 flex gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    className="glow-button flex-1 rounded-xl bg-gradient-to-l from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white transition-all hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/20"
+                                >
+                                    حفظ التعديلات
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingCourse(null)}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                                >
+                                    إلغاء
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Course Delete Confirmation Modal */}
+            {courseToDelete && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-emerald-950/40 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="modern-card w-full max-w-sm rounded-[2rem] border border-white bg-white p-8 text-center shadow-2xl animate-in zoom-in-95">
+                        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border-[4px] border-red-500/20 bg-red-50 text-red-500">
+                            <span className="text-4xl font-black">!</span>
+                        </div>
+                        <h2 className="mb-2 text-2xl font-black text-slate-800">حذف الدورة؟</h2>
+                        <p className="mb-8 text-sm text-slate-500">
+                            سيتم حذف الدورة "{courseToDelete}" وجميع الفيديوهات المرتبطة بها نهائيًا!
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={confirmDeleteCourse}
+                                className="flex-1 rounded-xl bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-500/30 transition hover:bg-red-600 hover:-translate-y-0.5"
+                            >
+                                حذف نهائي
+                            </button>
+                            <button
+                                onClick={() => setCourseToDelete(null)}
+                                className="flex-1 rounded-xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                            >
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Course Modal */}
+            {isAddingCourse && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/40 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="modern-card w-full max-w-md rounded-3xl border border-white p-6 shadow-2xl bg-white sm:p-8 animate-in zoom-in-95">
+                        <h2 className="mb-6 text-2xl font-black text-emerald-950">إضافة دورة جديدة</h2>
+                        <form onSubmit={handleAddCourse} className="space-y-4">
+                            <div>
+                                <label className="mb-1.5 block text-sm font-bold text-emerald-900">اسم الدورة</label>
+                                <input
+                                    type="text"
+                                    required
+                                    autoFocus
+                                    value={newCourseName}
+                                    onChange={(e) => setNewCourseName(e.target.value)}
+                                    placeholder="أدخل اسم الدورة..."
+                                    className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40"
+                                />
+                            </div>
+                            <div className="mt-6 flex gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    className="glow-button flex-1 rounded-xl bg-gradient-to-l from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white transition-all hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/20"
+                                >
+                                    حفظ الدورة
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsAddingCourse(false);
+                                        setNewCourseName("");
+                                    }}
+                                    className="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                                >
+                                    إلغاء
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
