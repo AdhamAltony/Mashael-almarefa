@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import PWAHandler from "@/components/PWAHandler";
 
 const cairo = localFont({
   src: [
@@ -39,24 +40,7 @@ export default function RootLayout({ children }) {
     <html lang="ar" dir="rtl">
       <body className={`${cairo.variable} antialiased`}>
         {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('Service Worker registration successful with scope: ', registration.scope);
-                    },
-                    function(err) {
-                      console.log('Service Worker registration failed: ', err);
-                    }
-                  );
-                });
-              }
-            `,
-          }}
-        />
+        <PWAHandler />
       </body>
     </html>
   );
