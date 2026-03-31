@@ -10,14 +10,14 @@ const DEPARTMENTS = [
 ];
 
 const CURRICULA_SUBJECTS = [
-    { id: "math", name: "الرياضيات" },
-    { id: "science", name: "العلوم" },
-    { id: "arabic_school", name: "اللغة العربية" },
-    { id: "english", name: "اللغة الإنجليزية" },
-    { id: "social", name: "الدراسات الاجتماعية" },
-    { id: "islamic", name: "التربية الإسلامية" },
-    { id: "french", name: "اللغة الفرنسية" },
-    { id: "german", name: "اللغة الألمانية" },
+  { id: "math", name: "الرياضيات" },
+  { id: "science", name: "العلوم" },
+  { id: "arabic_school", name: "اللغة العربية" },
+  { id: "english", name: "اللغة الإنجليزية" },
+  { id: "social", name: "الدراسات الاجتماعية" },
+  { id: "islamic", name: "التربية الإسلامية" },
+  { id: "french", name: "اللغة الفرنسية" },
+  { id: "german", name: "اللغة الألمانية" },
 ];
 
 function StatCard({ label, value, hint }) {
@@ -67,22 +67,22 @@ export default function StudentProfilePage() {
     const fetchInitialData = async () => {
       const cookies = document.cookie.split("; ");
       const sessionCookie = cookies.find(c => c.startsWith("session="));
-      
+
       if (sessionCookie?.split("=")[1]) {
         try {
           const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
           const decoded = decodeURIComponent(atob(base64));
           const data = JSON.parse(decoded);
           const currentEmail = data.email;
-          
+
           // Read the current session schedule key, but keep legacy support for older data.
           const savedSessions =
             localStorage.getItem(`sessions_${currentEmail}`) ||
             localStorage.getItem(`upcoming_sessions_${currentEmail}`);
           if (savedSessions) {
-              setUpcomingSessions(JSON.parse(savedSessions).slice(0, 3));
+            setUpcomingSessions(JSON.parse(savedSessions).slice(0, 3));
           } else {
-              setUpcomingSessions([]);
+            setUpcomingSessions([]);
           }
 
           // Load profile data
@@ -90,40 +90,40 @@ export default function StudentProfilePage() {
           const dbUser = allUsers.find(u => u.email === currentEmail);
 
           const initialFromSession = {
-              id: dbUser?.id || data.id,
-              name: dbUser?.name || data.name || "طالب جديد",
-              course: dbUser?.course || data.course || "بوابة الطالب",
-              department: dbUser?.department || data.department || "",
-              subjects: dbUser?.registered_subjects || data.subjects || [],
-              student_code: dbUser?.student_code || data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
-              level: dbUser?.level || ((dbUser?.department || data.department) 
-                  ? `${dbUser?.department || data.department}${(dbUser?.registered_subjects || data.subjects)?.length > 0 ? ` - (${(dbUser?.registered_subjects || data.subjects).join("، ")})` : ""}` 
-                  : "بانتظار تحديد المستوى"),
-              email: currentEmail,
-              guardian: dbUser?.guardian || data.guardian || "غير محدد",
-              age: dbUser?.age || data.age || "",
-              country: dbUser?.country || data.country || data.countryName || "غير محدد",
-              phone: dbUser?.phone || data.phone || data.guardianPhone || "غير محدد",
-              joinDate: dbUser?.joinDate || data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
+            id: dbUser?.id || data.id,
+            name: dbUser?.name || data.name || "طالب جديد",
+            course: dbUser?.course || data.course || "بوابة الطالب",
+            department: dbUser?.department || data.department || "",
+            subjects: dbUser?.registered_subjects || data.subjects || [],
+            student_code: dbUser?.student_code || data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
+            level: dbUser?.level || ((dbUser?.department || data.department)
+              ? `${dbUser?.department || data.department}${(dbUser?.registered_subjects || data.subjects)?.length > 0 ? ` - (${(dbUser?.registered_subjects || data.subjects).join("، ")})` : ""}`
+              : "بانتظار تحديد المستوى"),
+            email: currentEmail,
+            guardian: dbUser?.guardian || data.guardian || "غير محدد",
+            age: dbUser?.age || data.age || "",
+            country: dbUser?.country || data.country || data.countryName || "غير محدد",
+            phone: dbUser?.phone || data.phone || data.guardianPhone || "غير محدد",
+            joinDate: dbUser?.joinDate || data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
           };
 
           const localData = localStorage.getItem(`student_profile_${currentEmail}`);
           if (localData) {
-              const parsedLocal = JSON.parse(localData);
-              let teacherImage = "";
-              if (parsedLocal.assignedTeacherEmail) {
-                  const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
-                  if (tProfile) {
-                      teacherImage = JSON.parse(tProfile).image || "";
-                  }
+            const parsedLocal = JSON.parse(localData);
+            let teacherImage = "";
+            if (parsedLocal.assignedTeacherEmail) {
+              const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
+              if (tProfile) {
+                teacherImage = JSON.parse(tProfile).image || "";
               }
-              setStudent({
-                  ...initialFromSession,
-                  ...parsedLocal,
-                  assignedTeacherImage: teacherImage
-              });
+            }
+            setStudent({
+              ...initialFromSession,
+              ...parsedLocal,
+              assignedTeacherImage: teacherImage
+            });
           } else {
-              setStudent(initialFromSession);
+            setStudent(initialFromSession);
           }
 
           // Fetch progress
@@ -134,7 +134,7 @@ export default function StudentProfilePage() {
         } catch (e) { console.error(e); }
       }
     };
-    
+
     fetchInitialData();
   }, []);
 
@@ -157,33 +157,33 @@ export default function StudentProfilePage() {
         // 1. Upload to server
         const formData = new FormData();
         formData.append('file', file);
-        
+
         const res = await fetch('/api/upload', {
           method: 'POST',
           body: formData
         });
-        
+
         const result = await res.json();
         if (result.success) {
           const newImageUrl = result.url;
           const updatedStudent = { ...student, image: newImageUrl, role: "student" };
-          
+
           // 2. Update state
           setStudent(updatedStudent);
-          
+
           // 3. Update local cache
           localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updatedStudent));
-          
+
           // 4. Update Supabase immediately
           await updateUser(updatedStudent);
-          
+
           // 5. Update session cookie
           const base64 = btoa(encodeURIComponent(JSON.stringify(updatedStudent)));
           document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
-          
+
           // Notify Navbar
           window.dispatchEvent(new Event('profileUpdate'));
-          
+
           setSaved(true);
           setTimeout(() => setSaved(false), 3000);
         }
@@ -195,10 +195,10 @@ export default function StudentProfilePage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    
+
     // Recalculate level for display and DB
     const levelStr = `${student.department}${student.subjects?.length > 0 ? ` - (${student.subjects.join("، ")})` : ""}`;
-    
+
     const finalStudent = {
       ...student,
       course: student.department, // Ensure course matches department for DB consistency
@@ -214,11 +214,11 @@ export default function StudentProfilePage() {
 
     // Update individual profile file (Local cache)
     localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(finalStudent));
-    
+
     // Sync navbar and local display
     const base64 = btoa(encodeURIComponent(JSON.stringify(finalStudent)));
     document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
-    
+
     window.dispatchEvent(new Event('profileUpdate'));
     setIsEditing(false);
     setSaved(true);
@@ -245,7 +245,7 @@ export default function StudentProfilePage() {
                 )}
                 <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" title="رفع صورة شخصية" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 </div>
               </div>
               <div>
@@ -255,13 +255,13 @@ export default function StudentProfilePage() {
                 <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">{student.name}</h1>
                 <p className="mt-1 text-sm text-slate-600">{student.level}</p>
                 <div className="mt-2 flex items-center gap-4">
-                    <p className="text-sm font-medium text-slate-700 mt-1">
-                      المعلم المسؤول: <span className="font-bold text-emerald-900 border-b border-emerald-200">{student.assignedTeacher || "لم يتم الاشتراك بعد"}</span>
-                    </p>
-                    <p className="text-sm font-medium text-slate-500 mt-1">
-                      رقم الطالب: <span className="font-bold text-emerald-800">{student.id}</span>
-                    </p>
-                    {saved && <span className="text-xs font-bold text-emerald-600 animate-bounce">تم حفظ التغييرات!</span>}
+                  <p className="text-sm font-medium text-slate-700 mt-1">
+                    المعلم المسؤول: <span className="font-bold text-emerald-900 border-b border-emerald-200">{student.assignedTeacher || "لم يتم الاشتراك بعد"}</span>
+                  </p>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    رقم الطالب: <span className="font-bold text-emerald-800">{student.id}</span>
+                  </p>
+                  {saved && <span className="text-xs font-bold text-emerald-600 animate-bounce">تم حفظ التغييرات!</span>}
                 </div>
               </div>
             </div>
@@ -294,198 +294,198 @@ export default function StudentProfilePage() {
           {/* Edit / View Profile Section */}
           <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5 lg:col-span-2">
             <div className="flex items-center justify-between border-b border-emerald-50 pb-4 mb-6">
-                <h2 className="text-xl font-black text-emerald-950">البيانات الأساسية</h2>
-                {isEditing && <span className="text-xs font-bold text-emerald-600 underline">أنت الآن في وضع التعديل</span>}
+              <h2 className="text-xl font-black text-emerald-950">البيانات الأساسية</h2>
+              {isEditing && <span className="text-xs font-bold text-emerald-600 underline">أنت الآن في وضع التعديل</span>}
             </div>
 
             {isEditing ? (
-                <form onSubmit={handleSave} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 mr-2">اسم الطالب بالكامل</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={student.name}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 mr-2">ولي الأمر</label>
-                            <input
-                                type="text"
-                                name="guardian"
-                                value={student.guardian || ""}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 mr-2">تحديث الصورة الشخصية</label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-xs outline-none transition-all"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 mr-2">العمر</label>
-                                <input
-                                    type="number"
-                                    name="age"
-                                    value={student.age}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 mr-2">الدولة</label>
-                                <input
-                                    type="text"
-                                    name="country"
-                                    value={student.country}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 mr-2">القسم الحالي</label>
-                            <select
-                                name="department"
-                                value={DEPARTMENTS.find(d => d.name === student.department)?.id || student.department}
-                                onChange={(e) => {
-                                    const deptId = e.target.value;
-                                    const deptName = DEPARTMENTS.find(d => d.id === deptId)?.name || deptId;
-                                    
-                                    // Robust check: clear subjects if switching away from curricula
-                                    const updatedSubjects = deptId === "curricula" ? (student.subjects || []) : [];
-                                    const newLevel = `${deptName}${updatedSubjects.length > 0 ? ` - (${updatedSubjects.join("، ")})` : ""}`;
-                                    
-                                    setStudent(prev => ({ 
-                                        ...prev, 
-                                        department: deptName, 
-                                        course: deptName,
-                                        subjects: updatedSubjects, // clear if needed
-                                        level: newLevel 
-                                    }));
-                                }}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all appearance-none"
-                            >
-                                <option value="">اختر القسم</option>
-                                {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
-                        </div>
+              <form onSubmit={handleSave} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 mr-2">اسم الطالب بالكامل</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={student.name}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 mr-2">ولي الأمر</label>
+                    <input
+                      type="text"
+                      name="guardian"
+                      value={student.guardian || ""}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 mr-2">تحديث الصورة الشخصية</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-xs outline-none transition-all"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 mr-2">العمر</label>
+                      <input
+                        type="number"
+                        name="age"
+                        value={student.age}
+                        onChange={handleChange}
+                        className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                        required
+                      />
                     </div>
-
-                    {student.department === "المناهج الدراسية" && (
-                        <div className="space-y-3">
-                            <label className="text-xs font-bold text-slate-500 mr-2">المواد الدراسية المسجلة</label>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                {CURRICULA_SUBJECTS.map((sub) => (
-                                    <label key={sub.id} className="flex items-center gap-2 rounded-xl border border-emerald-50 bg-white/40 p-3 transition-all hover:bg-white/80 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={student.subjects?.includes(sub.name)}
-                                            onChange={(e) => {
-                                                const updated = e.target.checked
-                                                    ? [...(student.subjects || []), sub.name]
-                                                    : (student.subjects || []).filter(s => s !== sub.name);
-                                                const newLevel = `${student.department}${updated.length > 0 ? ` - (${updated.join("، ")})` : ""}`;
-                                                setStudent(prev => ({ ...prev, subjects: updated, level: newLevel }));
-                                            }}
-                                            className="h-4 w-4 rounded accent-emerald-600"
-                                        />
-                                        <span className="text-xs font-bold text-emerald-950">{sub.name}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-500 mr-2">رقم الهاتف للتواصل</label>
-                            <input
-                                type="tel"
-                                name="phone"
-                                value={student.phone}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
-                                dir="ltr"
-                                required
-                            />
-                        </div>
-
-                    <div className="pt-4">
-                        <button
-                            type="submit"
-                            className="w-full rounded-2xl bg-gradient-to-l from-emerald-500 to-emerald-600 py-4 font-black text-white shadow-lg shadow-emerald-500/20 transition-all hover:translate-y-[-2px] hover:shadow-emerald-500/40"
-                        >
-                            حفظ التعديلات وتحديث الملف
-                        </button>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 mr-2">الدولة</label>
+                      <input
+                        type="text"
+                        name="country"
+                        value={student.country}
+                        onChange={handleChange}
+                        className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                        required
+                      />
                     </div>
-                </form>
-            ) : (
-                <div className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">الاسم الكامل</span>
-                            <span className="text-lg font-black text-emerald-950">{student.name}</span>
-                        </div>
-                        <div className="flex gap-12">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">العمر</span>
-                                <span className="text-lg font-black text-emerald-950">{student.age} سنة</span>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">الدولة</span>
-                                <span className="text-lg font-black text-emerald-950">{student.country}</span>
-                            </div>
-                        </div>
-                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 mr-2">القسم الحالي</label>
+                    <select
+                      name="department"
+                      value={DEPARTMENTS.find(d => d.name === student.department)?.id || student.department}
+                      onChange={(e) => {
+                        const deptId = e.target.value;
+                        const deptName = DEPARTMENTS.find(d => d.id === deptId)?.name || deptId;
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">القسم المسجل به</span>
-                            <span className="text-lg font-bold text-emerald-900">{student.department || "بانتظار التحديد"}</span>
-                        </div>
-                        {student.department === "المناهج الدراسية" && (
-                             <div className="flex flex-col gap-1">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">المواد الدراسية</span>
-                                <span className="text-sm font-bold text-emerald-700">{student.subjects?.length > 0 ? student.subjects.join("، ") : "لم يتم اختيار مواد بعد"}</span>
-                            </div>
-                        )}
-                    </div>
+                        // Robust check: clear subjects if switching away from curricula
+                        const updatedSubjects = deptId === "curricula" ? (student.subjects || []) : [];
+                        const newLevel = `${deptName}${updatedSubjects.length > 0 ? ` - (${updatedSubjects.join("، ")})` : ""}`;
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">ولي الأمر</span>
-                            <span className="text-lg font-bold text-emerald-900">{student.guardian || "غير محدد"}</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">رقم الهاتف</span>
-                            <span className="text-lg font-bold text-emerald-900" dir="ltr">{student.phone}</span>
-                        </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-emerald-50 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                         <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">البريد الإلكتروني</span>
-                            <span className="text-sm font-medium text-slate-600">{student.email}</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest text-left">تاريخ الانضمام</span>
-                            <span className="text-sm font-bold text-emerald-700 text-left">{student.joinDate}</span>
-                        </div>
-                    </div>
+                        setStudent(prev => ({
+                          ...prev,
+                          department: deptName,
+                          course: deptName,
+                          subjects: updatedSubjects, // clear if needed
+                          level: newLevel
+                        }));
+                      }}
+                      className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all appearance-none"
+                    >
+                      <option value="">اختر القسم</option>
+                      {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
                 </div>
+
+                {student.department === "المناهج الدراسية" && (
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold text-slate-500 mr-2">المواد الدراسية المسجلة</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {CURRICULA_SUBJECTS.map((sub) => (
+                        <label key={sub.id} className="flex items-center gap-2 rounded-xl border border-emerald-50 bg-white/40 p-3 transition-all hover:bg-white/80 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={student.subjects?.includes(sub.name)}
+                            onChange={(e) => {
+                              const updated = e.target.checked
+                                ? [...(student.subjects || []), sub.name]
+                                : (student.subjects || []).filter(s => s !== sub.name);
+                              const newLevel = `${student.department}${updated.length > 0 ? ` - (${updated.join("، ")})` : ""}`;
+                              setStudent(prev => ({ ...prev, subjects: updated, level: newLevel }));
+                            }}
+                            className="h-4 w-4 rounded accent-emerald-600"
+                          />
+                          <span className="text-xs font-bold text-emerald-950">{sub.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 mr-2">رقم الهاتف للتواصل</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={student.phone}
+                    onChange={handleChange}
+                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 text-sm focus:border-emerald-500 outline-none transition-all"
+                    dir="ltr"
+                    required
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl bg-gradient-to-l from-emerald-500 to-emerald-600 py-4 font-black text-white shadow-lg shadow-emerald-500/20 transition-all hover:translate-y-[-2px] hover:shadow-emerald-500/40"
+                  >
+                    حفظ التعديلات وتحديث الملف
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">الاسم الكامل</span>
+                    <span className="text-lg font-black text-emerald-950">{student.name}</span>
+                  </div>
+                  <div className="flex gap-12">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">العمر</span>
+                      <span className="text-lg font-black text-emerald-950">{student.age} سنة</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">الدولة</span>
+                      <span className="text-lg font-black text-emerald-950">{student.country}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">القسم المسجل به</span>
+                    <span className="text-lg font-bold text-emerald-900">{student.department || "بانتظار التحديد"}</span>
+                  </div>
+                  {student.department === "المناهج الدراسية" && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">المواد الدراسية</span>
+                      <span className="text-sm font-bold text-emerald-700">{student.subjects?.length > 0 ? student.subjects.join("، ") : "لم يتم اختيار مواد بعد"}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">ولي الأمر</span>
+                    <span className="text-lg font-bold text-emerald-900">{student.guardian || "غير محدد"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">رقم الهاتف</span>
+                    <span className="text-lg font-bold text-emerald-900" dir="ltr">{student.phone}</span>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-emerald-50 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">البريد الإلكتروني</span>
+                    <span className="text-sm font-medium text-slate-600">{student.email}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest text-left">تاريخ الانضمام</span>
+                    <span className="text-sm font-bold text-emerald-700 text-left">{student.joinDate}</span>
+                  </div>
+                </div>
+              </div>
             )}
           </article>
 
@@ -516,81 +516,81 @@ export default function StudentProfilePage() {
                 );
               })}
             </div>
-            
+
             <div className="mt-10 pt-6 border-t border-emerald-50">
-                <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلم المسؤول</p>
-                <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white overflow-hidden">
-                        {student.assignedTeacherImage ? (
-                            <img src={student.assignedTeacherImage} alt={student.assignedTeacher} className="h-full w-full object-cover" />
-                        ) : (
-                            student.assignedTeacher?.charAt(0) || "؟"
-                        )}
-                    </div>
-                    <div>
-                        <p className="text-sm font-black text-emerald-950">{student.assignedTeacher || "لم يتم الاشتراك"}</p>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase">
-                            {student.assignedTeacher ? "معلمك الحالي" : "بانتظار اختيار معلم"}
-                        </p>
-                    </div>
+              <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلم المسؤول</p>
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white overflow-hidden">
+                  {student.assignedTeacherImage ? (
+                    <img src={student.assignedTeacherImage} alt={student.assignedTeacher} className="h-full w-full object-cover" />
+                  ) : (
+                    student.assignedTeacher?.charAt(0) || "؟"
+                  )}
                 </div>
+                <div>
+                  <p className="text-sm font-black text-emerald-950">{student.assignedTeacher || "لم يتم الاشتراك"}</p>
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase">
+                    {student.assignedTeacher ? "معلمك الحالي" : "بانتظار اختيار معلم"}
+                  </p>
+                </div>
+              </div>
             </div>
           </article>
         </div>
 
         <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-                <h2 className="text-xl font-black text-emerald-950">الحصص القادمة</h2>
-                <div className="mt-6">
-                {upcomingSessions.length > 0 ? (
-                    <ul className="space-y-3">
-                    {upcomingSessions.map((session) => (
-                        <li key={`${session.course}-${session.date}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white/70 p-4 hover:shadow-md transition-all">
-                        <div>
-                            <p className="font-bold text-emerald-900">{session.course || session.title}</p>
-                            <p className="mt-1 text-sm text-slate-600">{session.date} - {session.time || "موعد مجدول"}</p>
-                        </div>
-                        <a href={session.meetLink || "https://meet.google.com/new"} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:scale-105 active:scale-95">
-                            دخول الحصة
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                        </a>
-                        </li>
-                    ))}
-                    </ul>
-                ) : (
-                    <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-10 text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <p className="text-sm font-bold text-emerald-950">لا توجد حصص قادمة مجدولة</p>
-                        <p className="mt-1 text-xs text-slate-500">سيظهر الموعد هنا فور قيام المعلم بجدولة حصتك القادمة.</p>
-                    </div>
-                )}
+          <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
+            <h2 className="text-xl font-black text-emerald-950">الحصص القادمة</h2>
+            <div className="mt-6">
+              {upcomingSessions.length > 0 ? (
+                <ul className="space-y-3">
+                  {upcomingSessions.map((session) => (
+                    <li key={`${session.course}-${session.date}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white/70 p-4 hover:shadow-md transition-all">
+                      <div>
+                        <p className="font-bold text-emerald-900">{session.course || session.title}</p>
+                        <p className="mt-1 text-sm text-slate-600">{session.date} - {session.time || "موعد مجدول"}</p>
+                      </div>
+                      <a href={session.meetLink || "https://meet.google.com/new"} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:scale-105 active:scale-95">
+                        دخول الحصة
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-10 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-bold text-emerald-950">لا توجد حصص قادمة مجدولة</p>
+                  <p className="mt-1 text-xs text-slate-500">سيظهر الموعد هنا فور قيام المعلم بجدولة حصتك القادمة.</p>
                 </div>
-            </article>
+              )}
+            </div>
+          </article>
 
-            <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
-                <h2 className="text-xl font-black text-emerald-950">آخر الملاحظات</h2>
-                <div className="mt-6 flex flex-col gap-4">
-                    {progressData.achievements ? (
-                        <div className="space-y-3">
-                            <p className="text-xs font-bold text-emerald-700 tracking-wider">الإنجازات الأخيرة</p>
-                            {progressData.achievements?.split('\n').filter(a => a.trim()).map((item, idx) => (
-                                <div key={idx} className="flex gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-4 text-sm text-slate-700">
-                                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                    <span>{item}</span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-8 text-center">
-                            <p className="text-sm text-slate-500 italic">لا توجد إنجازات مسجلة حالياً..</p>
-                        </div>
-                    )}
+          <article className="modern-card rounded-3xl border border-white/70 p-6 shadow-xl shadow-emerald-900/5">
+            <h2 className="text-xl font-black text-emerald-950">آخر الملاحظات</h2>
+            <div className="mt-6 flex flex-col gap-4">
+              {progressData.achievements ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-emerald-700 tracking-wider">الإنجازات الأخيرة</p>
+                  {progressData.achievements?.split('\n').filter(a => a.trim()).map((item, idx) => (
+                    <div key={idx} className="flex gap-3 rounded-2xl border border-emerald-100 bg-white/70 p-4 text-sm text-slate-700">
+                      <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
                 </div>
-            </article>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/20 p-8 text-center">
+                  <p className="text-sm text-slate-500 italic">لا توجد إنجازات مسجلة حالياً..</p>
+                </div>
+              )}
+            </div>
+          </article>
         </section>
       </div>
     </main>

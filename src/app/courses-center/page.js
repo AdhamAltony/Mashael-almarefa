@@ -9,7 +9,7 @@ export default function CoursesCenterPage() {
     const [videos, setVideos] = useState([]);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    
+
     const [formData, setFormData] = useState({
         title: "",
         date: new Date().toISOString().split('T')[0],

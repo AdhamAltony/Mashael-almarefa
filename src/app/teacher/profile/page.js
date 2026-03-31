@@ -54,7 +54,7 @@ export default function TeacherProfilePage() {
                     const decoded = decodeURIComponent(atob(base64));
                     const data = JSON.parse(decoded);
                     currentEmail = data.email;
-                    
+
                     // Fetch the latest central record from "app_users" (the true current database)
                     const allUsers = await getLocalUsers();
                     const dbUser = allUsers.find(u => u.email === currentEmail);
@@ -63,7 +63,7 @@ export default function TeacherProfilePage() {
                     const deptName = dbUser?.department || data.department || "";
                     const deptId = DEPARTMENTS.find(d => d.name === deptName)?.id || "quran";
                     const initialSubjects = dbUser?.subjects || data.subjects || [];
-                    
+
                     const initialProfile = {
                         ...profile,
                         id: dbUser?.id, // Capture Supabase ID
@@ -94,12 +94,12 @@ export default function TeacherProfilePage() {
                     console.error("Failed to parse session", e);
                 }
             }
-            
+
             // Remove legacy key to prevent side effects
             localStorage.removeItem("teacher_profile");
             setLoading(false);
         };
-        
+
         fetchInitialData();
     }, []);
 
@@ -136,10 +136,10 @@ export default function TeacherProfilePage() {
             const subjects = currentSubjects.includes(subName)
                 ? currentSubjects.filter(s => s !== subName)
                 : [...currentSubjects, subName];
-            
+
             const deptName = DEPARTMENTS.find(d => d.id === prev.department)?.name || "";
             const spec = deptName + (subjects.length > 0 ? ` (${subjects.join("، ")})` : "");
-            
+
             return { ...prev, selectedSubjects: subjects, specialization: spec };
         });
         setSaved(false);
@@ -153,29 +153,29 @@ export default function TeacherProfilePage() {
                 // 1. Upload to server
                 const formData = new FormData();
                 formData.append('file', file);
-                
+
                 const res = await fetch('/api/upload', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const result = await res.json();
                 if (result.success) {
                     const newImageUrl = result.url;
                     const updatedProfile = { ...profile, image: newImageUrl, role: "teacher" };
-                    
+
                     // 2. Update state
                     setProfile(updatedProfile);
-                    
+
                     // 3. Update local cache
                     localStorage.setItem(`teacher_profile_${profile.email}`, JSON.stringify(updatedProfile));
-                    
+
                     // 4. Update Supabase immediately
                     await updateUser(updatedProfile);
-                    
+
                     // Notify Navbar
                     window.dispatchEvent(new Event('profileUpdate'));
-                    
+
                     setSaved(true);
                     setTimeout(() => setSaved(false), 3000);
                 }
@@ -187,7 +187,7 @@ export default function TeacherProfilePage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // 1. Update Central DB (Supabase via local-db adapter)
         const updatedUser = {
             id: profile.id, // Mandatory for Supabase updates
@@ -206,14 +206,14 @@ export default function TeacherProfilePage() {
 
         // 2. Update Local Cache
         localStorage.setItem(`teacher_profile_${profile.email}`, JSON.stringify(profile));
-        
+
         // 3. Update Session Cookie
         const base64 = btoa(encodeURIComponent(JSON.stringify(updatedUser)));
         document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
-        
+
         // 4. Notify UI
         window.dispatchEvent(new Event('profileUpdate'));
-        
+
         setSaved(true);
         setTimeout(() => {
             setSaved(false);
@@ -258,8 +258,8 @@ export default function TeacherProfilePage() {
                                     <div className="flex flex-col">
                                         <h3 className="font-bold text-lg text-emerald-950">{profile.name || "اسم المعلم"}</h3>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                             <span className={`h-1.5 w-1.5 rounded-full ${profile.status === 'نشط' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                             <span className={`text-[10px] font-bold ${profile.status === 'نشط' ? 'text-emerald-600' : 'text-slate-500'}`}>{profile.status === 'نشط' ? 'متاح الآن' : 'في إجازة حالياً'}</span>
+                                            <span className={`h-1.5 w-1.5 rounded-full ${profile.status === 'نشط' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                            <span className={`text-[10px] font-bold ${profile.status === 'نشط' ? 'text-emerald-600' : 'text-slate-500'}`}>{profile.status === 'نشط' ? 'متاح الآن' : 'في إجازة حالياً'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -328,9 +328,9 @@ export default function TeacherProfilePage() {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-emerald-900">ركن التدريس (القسم)</label>
-                                <select 
-                                    name="department" 
-                                    value={profile.department} 
+                                <select
+                                    name="department"
+                                    value={profile.department}
                                     onChange={(e) => {
                                         const dept = e.target.value;
                                         const deptName = DEPARTMENTS.find(d => d.id === dept)?.name || "";
@@ -353,11 +353,10 @@ export default function TeacherProfilePage() {
                                             key={sub.id}
                                             type="button"
                                             onClick={() => toggleSubject(sub.name)}
-                                            className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 transition-all ${
-                                                profile.selectedSubjects.includes(sub.name)
+                                            className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 transition-all ${profile.selectedSubjects.includes(sub.name)
                                                     ? "border-emerald-500 bg-white shadow-inner"
                                                     : "border-emerald-100 bg-white/40 hover:border-emerald-300"
-                                            }`}
+                                                }`}
                                         >
                                             <span className="text-xl">{sub.icon}</span>
                                             <span className="text-[10px] font-bold">{sub.name}</span>
