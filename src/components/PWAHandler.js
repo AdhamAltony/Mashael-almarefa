@@ -12,7 +12,7 @@ export default function PWAHandler() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Check if already installed (we still don't show to actual APP users)
+    // 1. Check if already installed
     const checkStandalone = () => {
       return window.matchMedia('(display-mode: standalone)').matches || (window.navigator).standalone === true;
     };
@@ -20,31 +20,29 @@ export default function PWAHandler() {
     const standalone = checkStandalone();
     setIsStandalone(standalone);
 
-    // 2. Detect Device Type
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    // 2. Detect Devices
+    const ua = navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const android = /Android/.test(ua);
     setIsIOS(ios);
 
     // 3. Register SW
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .catch(err => console.log('SW Registration Error', err));
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
     }
 
-    // 4. Capture Install Event (Android/Chrome/Brave)
+    // 4. Handle Android/Chrome Install Event
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      
-      // SHOW ALWAYS TO MOBILE BROWSER USERS (EVEN IF DISMISSED BEFORE)
-      if (!checkStandalone()) {
-        setShowBanner(true);
-      }
+      // If we got the prompt, make sure banner is up
+      if (!standalone) setShowBanner(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // 5. Fallback for iOS (Will ALWAYS show after 3 seconds on every visit)
-    if (ios && !standalone) {
+    // 5. THE GUARANTEE: Force show banner after 3s on Android & iOS if not standalone
+    if ((ios || android) && !standalone) {
        setTimeout(() => setShowBanner(true), 3000);
     }
 
@@ -60,15 +58,15 @@ export default function PWAHandler() {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setShowBanner(false);
-      }
+      if (outcome === 'accepted') setShowBanner(false);
       setDeferredPrompt(null);
+    } else {
+      // If Chrome hasn't allowed the native prompt yet
+      alert('المتصفح يجهز ملفات التطبيق.. يرجى المحاولة بعد لحظات أو استخدام "تثبيت التطبيق" من قائمة المتصفح (الثلاث نقاط) بالأعلى.');
     }
   };
 
   const dismissBanner = () => {
-    // Just close for the current session, will reappear on refresh/re-entry
     setShowBanner(false);
   };
 
@@ -76,7 +74,6 @@ export default function PWAHandler() {
 
   return (
     <>
-      {/* PROFESSIONAL SMART BANNER - PERSISTENT ON EVERY REFRESH */}
       <div className="fixed top-4 left-4 right-4 z-[9999] animate-fade-in-up md:max-w-md md:mx-auto">
         <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] p-4 border border-white/60 flex items-center justify-between ring-1 ring-black/5">
           <div className="flex items-center gap-4 flex-1">
