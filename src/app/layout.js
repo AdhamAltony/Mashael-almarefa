@@ -19,12 +19,45 @@ export const metadata = {
   title: "مشاعل المعرفة | منصة تعليمية متكاملة",
   description:
     "مشاعل المعرفة منصة تعليمية تهدف لصناعة جيل يجيد لغته ويحفظ كتاب ربه ويواكب عصره.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "المشاعل",
+  },
+  icons: {
+    apple: "/icon-192x192.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#14b8a6",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${cairo.variable} antialiased`}>{children}</body>
+      <body className={`${cairo.variable} antialiased`}>
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('Service Worker registration successful with scope: ', registration.scope);
+                    },
+                    function(err) {
+                      console.log('Service Worker registration failed: ', err);
+                    }
+                  );
+                });
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   );
 }

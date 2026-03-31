@@ -1,0 +1,25 @@
+{
+  "name": "مشاعل المعرفة",
+  "short_name": "المشاعل",
+  "description": "مشاعل المعرفة منصة تعليمية تهدف لصناعة جيل يجيد لغته ويحفظ كتاب ربه ويواكب عصره.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f8f8",
+  "theme_color": "#14b8a6",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "orientation": "portrait",
+  "scope": "/"
+}
