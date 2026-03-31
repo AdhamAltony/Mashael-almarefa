@@ -24,7 +24,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "المشاعل",
+    title: "مشاعل المعرفة",
   },
   icons: {
     apple: "/icon-192x192.png",
