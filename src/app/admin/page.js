@@ -367,7 +367,7 @@ export default function AdminUsersPage() {
                                                     <div className="flex flex-col gap-1 items-start">
                                                         <span className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                                                             {user.course || user.department}
-                                                            {((user.course || user.department || "").includes("المناهج الدراسية") && (user.subjects?.length > 0 || user.registered_subjects?.length > 0)) ? ` (${(user.subjects || user.registered_subjects).join("، ")})` : ""}
+                                                            {((user.course || user.department || "").includes("المناهج الدراسية") && !(user.course || user.department || "").includes("(") && (user.subjects?.length > 0 || user.registered_subjects?.length > 0)) ? ` (${(user.subjects || user.registered_subjects).join("، ")})` : ""}
                                                         </span>
                                                     </div>
                                                 </td>
