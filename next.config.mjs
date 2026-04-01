@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
   async headers() {
     return [
       {
@@ -10,6 +9,20 @@ const nextConfig = {
             key: 'Content-Type',
             value: 'video/mp4',
           },
+        ],
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Cache-Control', value: 'no-cache' },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          { key: 'Content-Type', value: 'application/manifest+json' },
         ],
       },
     ];

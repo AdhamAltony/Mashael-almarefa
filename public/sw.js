@@ -7,5 +7,9 @@ self.addEventListener('activate', () => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Required to be recognized as a PWA
+    event.respondWith(
+        caches.match(event.request).then((cached) => {
+            return cached || fetch(event.request);
+        }).catch(() => fetch(event.request))
+    );
 });
