@@ -7,7 +7,7 @@ import { getLocalUsers, updateUser } from "@/utils/local-db";
 
 const DEPARTMENTS = [
     { id: "quran", name: "ركن القرآن الكريم" },
-    { id: "arabic", name: "اللغة العربية لغير الناطقين" },
+    { id: "arabic-non-native", name: "اللغة العربية لغير الناطقين" },
     { id: "curricula", name: "المناهج الدراسية" },
 ];
 
@@ -31,7 +31,8 @@ export default function TeacherProfilePage() {
     const [profile, setProfile] = useState({
         name: "جاري التحميل...",
         email: "",
-        department: "quran",
+        department: "quran", // Fallback for single use logic if any
+        selectedDepartments: ["quran"], // New for multi-department
         selectedSubjects: [],
         specialization: "لم يتم التحديد بعد",
         available: "غير محدد",
@@ -60,8 +61,11 @@ export default function TeacherProfilePage() {
                     const dbUser = allUsers.find(u => u.email === currentEmail);
 
                     // Initialize from session/database data
-                    const deptName = dbUser?.department || data.department || "";
-                    const deptId = DEPARTMENTS.find(d => d.name === deptName)?.id || "quran";
+                    const deptNamesStr = dbUser?.department || data.department || "";
+                    const deptNames = deptNamesStr.split("، ").map(s => s.trim());
+                    const selectedDepts = DEPARTMENTS.filter(d => deptNames.includes(d.name)).map(d => d.id);
+                    if (selectedDepts.length === 0) selectedDepts.push("quran");
+
                     const initialSubjects = dbUser?.subjects || data.subjects || [];
 
                     const initialProfile = {
@@ -69,9 +73,10 @@ export default function TeacherProfilePage() {
                         id: dbUser?.id, // Capture Supabase ID
                         name: dbUser?.name || data.name || "معلم جديد",
                         email: currentEmail,
-                        department: deptId,
+                        department: selectedDepts[0] || "quran",
+                        selectedDepartments: selectedDepts,
                         selectedSubjects: initialSubjects,
-                        specialization: dbUser?.course || data.course || (deptName ? `${deptName}${initialSubjects.length > 0 ? ` (${initialSubjects.join("، ")})` : ""}` : "لم يتم تحديد القسم"),
+                        specialization: dbUser?.course || data.course || (deptNamesStr ? `${deptNamesStr}${initialSubjects.length > 0 ? ` (${initialSubjects.join("، ")})` : ""}` : "لم يتم تحديد القسم"),
                         phone: dbUser?.phone || data.phone || "",
                         image: dbUser?.image || data.image || "",
                         status: dbUser?.status || data.status || "نشط",
@@ -130,6 +135,27 @@ export default function TeacherProfilePage() {
         setSaved(false);
     };
 
+    const toggleDepartment = (deptId) => {
+        setProfile(prev => {
+            const currentDepts = prev.selectedDepartments || [];
+            const depts = currentDepts.includes(deptId)
+                ? (currentDepts.length > 1 ? currentDepts.filter(id => id !== deptId) : currentDepts)
+                : [...currentDepts, deptId];
+            
+            const deptNames = depts.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean);
+            const deptNameStr = deptNames.join("، ");
+            const spec = deptNameStr + (prev.selectedSubjects.length > 0 ? ` (${prev.selectedSubjects.join("، ")})` : "");
+
+            return { 
+                ...prev, 
+                selectedDepartments: depts, 
+                department: depts[0] || "quran",
+                specialization: spec 
+            };
+        });
+        setSaved(false);
+    };
+
     const toggleSubject = (subName) => {
         setProfile(prev => {
             const currentSubjects = prev.selectedSubjects || [];
@@ -137,8 +163,9 @@ export default function TeacherProfilePage() {
                 ? currentSubjects.filter(s => s !== subName)
                 : [...currentSubjects, subName];
 
-            const deptName = DEPARTMENTS.find(d => d.id === prev.department)?.name || "";
-            const spec = deptName + (subjects.length > 0 ? ` (${subjects.join("، ")})` : "");
+            const deptNames = prev.selectedDepartments.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean);
+            const deptNameStr = deptNames.join("، ");
+            const spec = deptNameStr + (subjects.length > 0 ? ` (${subjects.join("، ")})` : "");
 
             return { ...prev, selectedSubjects: subjects, specialization: spec };
         });
@@ -189,12 +216,13 @@ export default function TeacherProfilePage() {
         e.preventDefault();
 
         // 1. Update Central DB (Supabase via local-db adapter)
+        const deptNames = profile.selectedDepartments.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean);
         const updatedUser = {
             id: profile.id, // Mandatory for Supabase updates
             email: profile.email,
             name: profile.name,
             phone: profile.phone,
-            department: DEPARTMENTS.find(d => d.id === profile.department)?.name || profile.specialization,
+            department: deptNames.join("، "),
             subjects: profile.selectedSubjects,
             course: profile.specialization,
             bio: profile.bio,
@@ -326,25 +354,27 @@ export default function TeacherProfilePage() {
                                     required
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-emerald-900">ركن التدريس (القسم)</label>
-                                <select
-                                    name="department"
-                                    value={profile.department}
-                                    onChange={(e) => {
-                                        const dept = e.target.value;
-                                        const deptName = DEPARTMENTS.find(d => d.id === dept)?.name || "";
-                                        setProfile(prev => ({ ...prev, department: dept, selectedSubjects: [], specialization: deptName }));
-                                        setSaved(false);
-                                    }}
-                                    className="w-full rounded-xl border border-emerald-100 bg-white/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium outline-none appearance-none"
-                                >
-                                    {DEPARTMENTS.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                </select>
+                            <div className="space-y-3">
+                                <label className="text-sm font-bold text-emerald-900 border-r-4 border-emerald-500 pr-3">أقسام التدريس (يمكنك اختيار أكثر من قسم)</label>
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                    {DEPARTMENTS.map((dept) => (
+                                        <button
+                                            key={dept.id}
+                                            type="button"
+                                            onClick={() => toggleDepartment(dept.id)}
+                                            className={`flex h-full items-center justify-center rounded-xl border-2 p-3 text-center text-xs font-bold transition-all ${profile.selectedDepartments.includes(dept.id)
+                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-inner"
+                                                    : "border-emerald-50 bg-white/50 text-slate-500 hover:border-emerald-200"
+                                                }`}
+                                        >
+                                            {dept.name}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
-                        {profile.department === 'curricula' && (
+                        {profile.selectedDepartments.includes('curricula') && (
                             <div className="space-y-3 animate-in fade-in duration-500">
                                 <label className="text-sm font-bold text-emerald-900">المواد الدراسية (تخصصك)</label>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

@@ -12,7 +12,7 @@ export default function AdminUsersPage() {
 
     // Edit State
     const [editingUser, setEditingUser] = useState(null);
-    const [editForm, setEditForm] = useState({ name: "", email: "", course: "" });
+    const [editForm, setEditForm] = useState({ name: "", email: "", course: "", selectedDepartments: [] });
 
     // Delete Modal State
     const [userToDelete, setUserToDelete] = useState(null);
@@ -73,15 +73,37 @@ export default function AdminUsersPage() {
     const openEditModal = (user) => {
         setEditingUser(user);
         let rating = user.rating || "5.0";
-        setEditForm({ name: user.name, email: user.email, course: user.course, rating });
+        const deptNames = (user.course || user.department || "").split("، ").map(s => s.trim());
+        setEditForm({ 
+            name: user.name, 
+            email: user.email, 
+            course: user.course || user.department, 
+            rating,
+            selectedDepartments: deptNames
+        });
     };
 
     const handleSaveEdit = async (e) => {
         e.preventDefault();
-        await updateUser({ ...editingUser, ...editForm });
+        const updatedData = { ...editingUser, ...editForm };
+        if (editingUser.role === "teacher") {
+            updatedData.course = editForm.selectedDepartments.join("، ");
+            updatedData.department = updatedData.course;
+        }
+        await updateUser(updatedData);
         
         setUsers(await getLocalUsers());
         setEditingUser(null);
+    };
+
+    const toggleEditDept = (deptName) => {
+        setEditForm(prev => {
+            const current = prev.selectedDepartments || [];
+            const updated = current.includes(deptName)
+                ? (current.length > 1 ? current.filter(d => d !== deptName) : current)
+                : [...current, deptName];
+            return { ...prev, selectedDepartments: updated };
+        });
     };
 
     const toggleTeacherStatus = async (user) => {
@@ -444,17 +466,40 @@ export default function AdminUsersPage() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-emerald-900">القسم / المسار</label>
-                                <select
-                                    required
-                                    value={editForm.course}
-                                    onChange={(e) => setEditForm({ ...editForm, course: e.target.value })}
-                                    className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 appearance-none"
-                                >
-                                    <option value="ركن القرآن الكريم">ركن القرآن الكريم</option>
-                                    <option value="اللغة العربية لغير الناطقين">اللغة العربية لغير الناطقين</option>
-                                    <option value="المناهج الدراسية">المناهج الدراسية</option>
-                                </select>
+                                <label className="mb-1.5 block text-sm font-bold text-emerald-900">{editingUser.role === "teacher" ? "أقسام التدريس" : "القسم / المسار"}</label>
+                                {editingUser.role === "teacher" ? (
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {["ركن القرآن الكريم", "اللغة العربية لغير الناطقين", "المناهج الدراسية"].map((dept) => (
+                                            <button
+                                                key={dept}
+                                                type="button"
+                                                onClick={() => toggleEditDept(dept)}
+                                                className={`flex items-center justify-between rounded-xl border-2 p-3 text-right text-xs font-bold transition-all ${editForm.selectedDepartments.includes(dept)
+                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-950"
+                                                    : "border-emerald-50 bg-white text-slate-500 hover:border-emerald-200"
+                                                }`}
+                                            >
+                                                <span>{dept}</span>
+                                                {editForm.selectedDepartments.includes(dept) && (
+                                                    <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <select
+                                        required
+                                        value={editForm.course}
+                                        onChange={(e) => setEditForm({ ...editForm, course: e.target.value })}
+                                        className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 appearance-none"
+                                    >
+                                        <option value="ركن القرآن الكريم">ركن القرآن الكريم</option>
+                                        <option value="اللغة العربية لغير الناطقين">اللغة العربية لغير الناطقين</option>
+                                        <option value="المناهج الدراسية">المناهج الدراسية</option>
+                                    </select>
+                                )}
                             </div>                            {editingUser.role === "teacher" && (
                                 <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100/50">
                                     <label className="mb-2 block text-xs font-bold text-amber-800 uppercase tracking-wider">تقييم المعلم</label>
