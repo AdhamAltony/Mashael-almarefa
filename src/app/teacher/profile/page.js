@@ -62,11 +62,20 @@ export default function TeacherProfilePage() {
 
                     // Initialize from session/database data
                     const deptNamesStr = dbUser?.department || data.department || "";
-                    const deptNames = deptNamesStr.split("، ").map(s => s.trim());
-                    const selectedDepts = DEPARTMENTS.filter(d => deptNames.includes(d.name)).map(d => d.id);
+                    const selectedDepts = DEPARTMENTS.filter(d => deptNamesStr.includes(d.name)).map(d => d.id);
                     if (selectedDepts.length === 0) selectedDepts.push("quran");
 
-                    const initialSubjects = dbUser?.subjects || data.subjects || [];
+                    const dbSubjects = Array.isArray(dbUser?.subjects) && dbUser.subjects.length > 0 ? dbUser.subjects : null;
+                    const sessionSubjects = Array.isArray(data.subjects) && data.subjects.length > 0 ? data.subjects : null;
+                    
+                    let initialSubjects = dbSubjects || sessionSubjects || [];
+                    
+                    // Robust parsing fallback for teachers (needed for immediate display after signup)
+                    if (initialSubjects.length === 0 && (dbUser?.course || data.course || dbUser?.specialization || deptNamesStr)?.includes('(')) {
+                        const strToParse = dbUser?.specialization || dbUser?.course || data.course || deptNamesStr;
+                        const match = strToParse.match(/\((.*)\)/);
+                        if (match) initialSubjects = match[1].split(/[،,]/).map(s => s.trim()).filter(Boolean);
+                    }
 
                     const initialProfile = {
                         ...profile,
@@ -141,16 +150,21 @@ export default function TeacherProfilePage() {
             const depts = currentDepts.includes(deptId)
                 ? (currentDepts.length > 1 ? currentDepts.filter(id => id !== deptId) : currentDepts)
                 : [...currentDepts, deptId];
-            
+
             const deptNames = depts.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean);
             const deptNameStr = deptNames.join("، ");
-            const spec = deptNameStr + (prev.selectedSubjects.length > 0 ? ` (${prev.selectedSubjects.join("، ")})` : "");
 
-            return { 
-                ...prev, 
-                selectedDepartments: depts, 
-                department: depts[0] || "quran",
-                specialization: spec 
+            // Clear subjects if curricula is unselected
+            const hasCurricula = depts.includes("curricula");
+            const finalSubjects = hasCurricula ? (prev.selectedSubjects || []) : [];
+            const spec = deptNameStr + (finalSubjects.length > 0 ? ` (${finalSubjects.join("، ")})` : "");
+
+            return {
+                ...prev,
+                selectedDepartments: depts,
+                selectedSubjects: finalSubjects,
+                department: deptNameStr,
+                specialization: spec
             };
         });
         setSaved(false);
@@ -363,8 +377,8 @@ export default function TeacherProfilePage() {
                                             type="button"
                                             onClick={() => toggleDepartment(dept.id)}
                                             className={`flex h-full items-center justify-center rounded-xl border-2 p-3 text-center text-xs font-bold transition-all ${profile.selectedDepartments.includes(dept.id)
-                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-inner"
-                                                    : "border-emerald-50 bg-white/50 text-slate-500 hover:border-emerald-200"
+                                                ? "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-inner"
+                                                : "border-emerald-50 bg-white/50 text-slate-500 hover:border-emerald-200"
                                                 }`}
                                         >
                                             {dept.name}
@@ -384,8 +398,8 @@ export default function TeacherProfilePage() {
                                             type="button"
                                             onClick={() => toggleSubject(sub.name)}
                                             className={`flex flex-col items-center gap-1 rounded-xl border-2 p-2 transition-all ${profile.selectedSubjects.includes(sub.name)
-                                                    ? "border-emerald-500 bg-white shadow-inner"
-                                                    : "border-emerald-100 bg-white/40 hover:border-emerald-300"
+                                                ? "border-emerald-500 bg-white shadow-inner"
+                                                : "border-emerald-100 bg-white/40 hover:border-emerald-300"
                                                 }`}
                                         >
                                             <span className="text-xl">{sub.icon}</span>

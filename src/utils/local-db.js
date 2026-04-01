@@ -17,7 +17,7 @@ const mapUserFromSupabase = (u) => {
     const studentProfile = u.students_profile?.[0] || u.students_profile || {};
     const teacherProfile = u.teachers_profile?.[0] || u.teachers_profile || {};
     const profile = u.role === 'teacher' ? teacherProfile : studentProfile;
-    
+
     // Combine everything
     const combined = { ...u, ...profile };
 
@@ -31,9 +31,10 @@ const mapUserFromSupabase = (u) => {
     }
 
     // 3. Construct flat object for UI
-    const subjects = combined.registered_subjects || (combined.role === 'teacher' && (combined.specialization?.includes('(') || combined.course?.includes('(')) 
-        ? (combined.specialization || combined.course).match(/\((.*)\)/)?.[1].split('،').map(s => s.trim()) 
-        : combined.subjects) || [];
+    const subjectsStr = (combined.specialization || combined.course || combined.department || "");
+    const subjects = combined.registered_subjects || (combined.role === 'teacher' && subjectsStr.includes('(')
+        ? subjectsStr.match(/\((.*)\)/)?.[1].split(/[،,]/).map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(combined.subjects) ? combined.subjects : [])) || [];
 
     return {
         ...combined,
@@ -102,7 +103,7 @@ export const getLocalUsers = async (forceRefresh = false) => {
                 students_profile (*),
                 teachers_profile (*)
             `);
-        
+
         if (error) {
             console.error('Supabase getLocalUsers Error:', error.message);
             throw error;
@@ -126,21 +127,21 @@ export const saveUser = async (user) => {
         // 1. Insert into core users table
         const suUser = mapUserToSupabase(user);
         const { data, error } = await client.from('users').insert([suUser]).select();
-        
+
         if (error) {
             console.error('Supabase Registration Error:', error.message);
             throw error;
         }
-        
+
         const newUser = data[0];
 
         // 2. Insert into profile table (Using 'students_profile' and 'teachers_profile')
         if (user.role === 'teacher') {
             let spec = user.course || user.department || "";
-            if (user.department === "المناهج الدراسية" && user.subjects?.length > 0) {
+            if (!spec.includes("(") && user.department?.includes("المناهج الدراسية") && user.subjects?.length > 0) {
                 spec += ` (${user.subjects.join("، ")})`;
             }
-            await client.from('teachers_profile').insert([{
+            const { error: profileError } = await client.from('teachers_profile').insert([{
                 user_id: newUser.id,
                 teacher_code: `TEA-${Math.floor(10000 + Math.random() * 90000)}`,
                 specialization: spec,
@@ -149,8 +150,12 @@ export const saveUser = async (user) => {
                 rating: 5.0,
                 rate_per_session: 0
             }]);
+            
+            if (profileError) {
+                console.error("Failed to insert into teachers_profile:", profileError);
+            }
         } else if (user.role === 'student') {
-            await client.from('students_profile').insert([{
+            const { error: studentProfileError } = await client.from('students_profile').insert([{
                 user_id: newUser.id,
                 student_code: `STD-${Math.floor(10000 + Math.random() * 90000)}`,
                 guardian_name: user.guardian || "",
@@ -159,6 +164,10 @@ export const saveUser = async (user) => {
                 registered_subjects: user.subjects || [],
                 country: user.country || ""
             }]);
+            
+            if (studentProfileError) {
+                console.error("Failed to insert into students_profile:", studentProfileError);
+            }
         }
 
         return mapUserFromSupabase(newUser);
@@ -178,7 +187,7 @@ export const deleteUser = async (id, email) => {
             .from('users')
             .delete()
             .eq('id', id);
-        
+
         if (error) {
             console.error('Detailed Delete Error:', error.message);
             throw error;
@@ -194,7 +203,7 @@ export const deleteUser = async (id, email) => {
             localStorage.removeItem(`student_profile_${email}`);
             localStorage.removeItem(`teacher_profile_${email}`);
             localStorage.removeItem(`teacher_portfolio_${email}`);
-            
+
             // Clean up any session-based localStorage items
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -222,7 +231,7 @@ export const updateUser = async (updatedUser) => {
             .from('users')
             .update(suUpdate)
             .eq('id', updatedUser.id);
-        
+
         if (error) throw error;
 
         // 2. Update profiles (Using your schema table names)

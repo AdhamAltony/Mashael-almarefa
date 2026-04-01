@@ -85,17 +85,12 @@ export default function SignupPage() {
             return;
         }
 
-        if (role === "student" && !formData.department) {
-            setError("الرجاء اختيار القسم الذي تود الانضمام إليه.");
+        if (formData.selectedDepartments.length === 0) {
+            setError(role === "student" ? "الرجاء اختيار قسم واحد على الأقل للانضمام إليه." : "الرجاء اختيار قسم واحد على الأقل للتدريس فيه.");
             return;
         }
 
-        if (role === "teacher" && formData.selectedDepartments.length === 0) {
-            setError("الرجاء اختيار قسم واحد على الأقل للتدريس فيه.");
-            return;
-        }
-
-        if (((role === "student" && formData.department === "curricula") || (role === "teacher" && formData.selectedDepartments.includes("curricula"))) && formData.selectedSubjects.length === 0) {
+        if (formData.selectedDepartments.includes("curricula") && formData.selectedSubjects.length === 0) {
             setError(role === "teacher" ? "الرجاء اختيار مادة واحدة على الأقل لتدريسها." : "الرجاء اختيار مادة واحدة على الأقل لتسجيلها.");
             return;
         }
@@ -111,9 +106,7 @@ export default function SignupPage() {
         }
 
         // Persist user locally
-        const deptNames = role === "teacher" 
-            ? formData.selectedDepartments.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean)
-            : [DEPARTMENTS.find(d => d.id === formData.department)?.name].filter(Boolean);
+        const deptNames = formData.selectedDepartments.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean);
 
         const userData = {
             name: formData.name,
@@ -122,7 +115,10 @@ export default function SignupPage() {
             role: role,
             department: deptNames.join("، "),
             subjects: formData.selectedSubjects.map(id => CURRICULA_SUBJECTS.find(s => s.id === id)?.name).filter(Boolean),
-            course: deptNames.join("، "),
+            course: role === "teacher" 
+                ? deptNames.join("، ") + (deptNames.includes("المناهج الدراسية") && formData.selectedSubjects.length > 0 ? ` (${formData.selectedSubjects.map(id => CURRICULA_SUBJECTS.find(s => s.id === id)?.name).filter(Boolean).join("، ")})` : "")
+                : deptNames.join("، "),
+            allDepartments: deptNames, // New field for clarity
             guardian: role === "student" ? formData.guardian : "",
             age: role === "student" ? formData.age : "",
             country: formData.countryName || "مصر",
@@ -230,23 +226,23 @@ export default function SignupPage() {
                     <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
                         <div className="space-y-3">
                             <label className="block text-sm font-bold text-emerald-900 border-r-4 border-emerald-500 pr-3">
-                                {role === "student" ? "القسم الذي ترغب في الانضمام إليه" : "الأقسام التي ترغب في التدريس بها (يمكنك اختيار أكثر من قسم)"}
+                                {role === "student" ? "الأقسام التي تود الانضمام إليها (يمكنك اختيار أكثر من قسم)" : "الأقسام التي ترغب في التدريس بها (يمكنك اختيار أكثر من قسم)"}
                             </label>
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 {DEPARTMENTS.map((dept) => (
                                     <label key={dept.id} className="relative cursor-pointer group">
                                         <input
-                                            type={role === "teacher" ? "checkbox" : "radio"}
+                                            type="checkbox"
                                             name="department"
                                             value={dept.id}
-                                            checked={role === "teacher" ? formData.selectedDepartments.includes(dept.id) : formData.department === dept.id}
-                                            onChange={role === "teacher" ? () => toggleDepartment(dept.id) : handleInputChange}
+                                            checked={formData.selectedDepartments.includes(dept.id)}
+                                            onChange={() => toggleDepartment(dept.id)}
                                             className="peer sr-only"
                                         />
                                         <div className="flex h-full items-center justify-center rounded-xl border-2 border-slate-100 bg-white/50 p-3 text-center text-xs font-bold text-emerald-950 transition-all hover:border-emerald-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 shadow-sm group-hover:shadow-md">
                                             {dept.name}
                                         </div>
-                                        {role === "teacher" && formData.selectedDepartments.includes(dept.id) && (
+                                        {formData.selectedDepartments.includes(dept.id) && (
                                             <div className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm transition-transform duration-300 animate-in zoom-in">
                                                 <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -259,7 +255,7 @@ export default function SignupPage() {
                         </div>
 
                         {/* Common: Subjects Selection (If Curricula) */}
-                        {((role === "student" && formData.department === "curricula") || (role === "teacher" && formData.selectedDepartments.includes("curricula"))) && (
+                        {formData.selectedDepartments.includes("curricula") && (
                             <div className="space-y-3 animate-in fade-in zoom-in-95 duration-300">
                                 <label className="block text-sm font-bold text-emerald-900 border-r-4 border-emerald-500 pr-3">
                                     {role === "teacher" ? "المواد التي تقوم بتدريسها" : "المواد التي تود دراستها"}

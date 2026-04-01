@@ -86,10 +86,9 @@ export default function AdminUsersPage() {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         const updatedData = { ...editingUser, ...editForm };
-        if (editingUser.role === "teacher") {
-            updatedData.course = editForm.selectedDepartments.join("، ");
-            updatedData.department = updatedData.course;
-        }
+        updatedData.course = editForm.selectedDepartments.join("، ");
+        updatedData.department = updatedData.course;
+        
         await updateUser(updatedData);
         
         setUsers(await getLocalUsers());
@@ -368,12 +367,8 @@ export default function AdminUsersPage() {
                                                     <div className="flex flex-col gap-1 items-start">
                                                         <span className="inline-flex rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                                                             {user.course || user.department}
+                                                            {((user.course || user.department || "").includes("المناهج الدراسية") && (user.subjects?.length > 0 || user.registered_subjects?.length > 0)) ? ` (${(user.subjects || user.registered_subjects).join("، ")})` : ""}
                                                         </span>
-                                                        {(user.course === "المناهج الدراسية" || user.department === "المناهج الدراسية") && (user.subjects?.length > 0 || user.registered_subjects?.length > 0) && (
-                                                            <span className="text-[10px] font-bold text-slate-500 mr-1">
-                                                                ({(user.subjects || user.registered_subjects).join("، ")})
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 </td>
                                                 {activeTab === "student" ? (
@@ -466,40 +461,27 @@ export default function AdminUsersPage() {
                                 />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-bold text-emerald-900">{editingUser.role === "teacher" ? "أقسام التدريس" : "القسم / المسار"}</label>
-                                {editingUser.role === "teacher" ? (
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {["ركن القرآن الكريم", "اللغة العربية لغير الناطقين", "المناهج الدراسية"].map((dept) => (
-                                            <button
-                                                key={dept}
-                                                type="button"
-                                                onClick={() => toggleEditDept(dept)}
-                                                className={`flex items-center justify-between rounded-xl border-2 p-3 text-right text-xs font-bold transition-all ${editForm.selectedDepartments.includes(dept)
-                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-950"
-                                                    : "border-emerald-50 bg-white text-slate-500 hover:border-emerald-200"
-                                                }`}
-                                            >
-                                                <span>{dept}</span>
-                                                {editForm.selectedDepartments.includes(dept) && (
-                                                    <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <select
-                                        required
-                                        value={editForm.course}
-                                        onChange={(e) => setEditForm({ ...editForm, course: e.target.value })}
-                                        className="w-full rounded-xl border border-emerald-200 bg-emerald-50/30 px-4 py-3 text-emerald-950 outline-none transition focus:border-emerald-400 focus:ring-1 focus:ring-emerald-300/40 appearance-none"
-                                    >
-                                        <option value="ركن القرآن الكريم">ركن القرآن الكريم</option>
-                                        <option value="اللغة العربية لغير الناطقين">اللغة العربية لغير الناطقين</option>
-                                        <option value="المناهج الدراسية">المناهج الدراسية</option>
-                                    </select>
-                                )}
+                                <label className="mb-1.5 block text-sm font-bold text-emerald-900 border-r-4 border-emerald-500 pr-3">أقسام العضو (يمكن اختيار أكثر من واحد)</label>
+                                <div className="grid grid-cols-1 gap-2 mt-2">
+                                    {["ركن القرآن الكريم", "اللغة العربية لغير الناطقين", "المناهج الدراسية"].map((dept) => (
+                                        <button
+                                            key={dept}
+                                            type="button"
+                                            onClick={() => toggleEditDept(dept)}
+                                            className={`flex items-center justify-between rounded-xl border-2 p-3 text-right text-xs font-bold transition-all ${editForm.selectedDepartments.includes(dept)
+                                                ? "border-emerald-500 bg-emerald-50 text-emerald-950"
+                                                : "border-emerald-50 bg-white text-slate-500 hover:border-emerald-200"
+                                            }`}
+                                        >
+                                            <span>{dept}</span>
+                                            {editForm.selectedDepartments.includes(dept) && (
+                                                <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>                            {editingUser.role === "teacher" && (
                                 <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100/50">
                                     <label className="mb-2 block text-xs font-bold text-amber-800 uppercase tracking-wider">تقييم المعلم</label>
