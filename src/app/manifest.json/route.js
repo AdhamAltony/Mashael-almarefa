@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const manifest = {
     name: 'مشاعل المعرفة',
-    short_name: 'المشاعل',
+    short_name: "مشاعل المعرفة",
     description: 'منصة مشاعل المعرفة التعليمية',
     start_url: '/',
     display: 'standalone',
