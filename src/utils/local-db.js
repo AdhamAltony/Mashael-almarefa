@@ -143,7 +143,6 @@ export const saveUser = async (user) => {
             }
             const { error: profileError } = await client.from('teachers_profile').insert([{
                 user_id: newUser.id,
-                teacher_code: `TEA-${Math.floor(10000 + Math.random() * 90000)}`,
                 specialization: spec,
                 bio: user.bio || "",
                 is_on_leave: user.status === "إجازة",

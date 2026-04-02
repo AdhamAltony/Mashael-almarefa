@@ -293,7 +293,7 @@ export default function TeacherStudentsPage() {
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span>{student.name}</span>
-                                                        <span className="text-[10px] text-slate-400 font-mono tracking-tighter">{student.id}</span>
+                                                        <span className="text-[10px] text-slate-400 font-mono tracking-tighter">#{student.memberNumber}</span>
                                                     </div>
                                                 </div>
                                             </td>
