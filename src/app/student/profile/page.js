@@ -209,8 +209,15 @@ export default function StudentProfilePage() {
           // 4. Update Supabase immediately
           await updateUser(updatedStudent);
 
-          // 5. Update session cookie
-          const base64 = btoa(encodeURIComponent(JSON.stringify(updatedStudent)));
+          // 5. Update session cookie with essential fields only to prevent huge cookie breaks
+          const sessionData = {
+              id: updatedStudent.id,
+              email: updatedStudent.email,
+              name: updatedStudent.name,
+              role: updatedStudent.role,
+              course: updatedStudent.course
+          };
+          const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
           document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
 
           // Notify Navbar
@@ -250,8 +257,15 @@ export default function StudentProfilePage() {
     // Update individual profile file (Local cache)
     localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(finalStudent));
 
-    // Sync navbar and local display
-    const base64 = btoa(encodeURIComponent(JSON.stringify(finalStudent)));
+    // Sync navbar and local display with essential cookie data
+    const sessionData = {
+        id: finalStudent.id,
+        email: finalStudent.email,
+        name: finalStudent.name,
+        role: finalStudent.role,
+        course: finalStudent.course
+    };
+    const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
     document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
 
     window.dispatchEvent(new Event('profileUpdate'));

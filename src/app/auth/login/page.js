@@ -58,10 +58,17 @@ export default function LoginPage() {
     }
 
     const cookieOptions = rememberMe ? "max-age=2592000; SameSite=Strict" : "SameSite=Strict";
-    // Include all user fields in the session to ensure profile parts show up correctly
-    const sessionData = { ...userByEmail };
-    // Remove sensitive data before putting in cookie if desired, but for local-first it's fine
-    delete sessionData.password;
+    // Extract only essential fields to keep the cookie size well under browser limits (4KB)
+    // Detailed profile data should be loaded securely on the client via DB fetching
+    const sessionData = { 
+        id: userByEmail.id || userByEmail.user_id,
+        email: userByEmail.email,
+        name: userByEmail.name,
+        role: userByEmail.role,
+        redirect: userByEmail.redirect,
+        course: userByEmail.course || userByEmail.department || "",
+        status: userByEmail.status
+    };
     
     const encodedSession = btoa(encodeURIComponent(JSON.stringify(sessionData)));
 

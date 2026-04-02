@@ -92,24 +92,45 @@ export default function TeacherProfilePage() {
                         bio: dbUser?.bio || data.bio || "",
                     };
 
-                    // Merge with extended local profile data
+                    // Merge with extended local profile data from cache to avoid losing unsaved/un-synced changes
                     const savedLocalProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
                     if (savedLocalProfile) {
-                        const parsedLocal = JSON.parse(savedLocalProfile);
-                        setProfile({
-                            ...initialProfile,
-                            ...parsedLocal, // Local storage can have the bio if it's not yet synced to DB or recently changed
-                            // Only override from DB if DB actually has data for critical fields
-                            name: dbUser?.name || parsedLocal.name || initialProfile.name,
-                            bio: dbUser?.bio || parsedLocal.bio || initialProfile.bio,
-                            image: dbUser?.image || parsedLocal.image || initialProfile.image,
-                        });
+                        try {
+                            const parsedLocal = JSON.parse(savedLocalProfile);
+                            const mergedProfile = {
+                                ...initialProfile,
+                                ...parsedLocal,
+                                // Ensure arrays are strictly arrays, otherwise fallback to initial data to avoid .map() crashing on strings
+                                selectedDepartments: Array.isArray(parsedLocal.selectedDepartments) ? parsedLocal.selectedDepartments : (initialProfile.selectedDepartments || ["quran"]),
+                                selectedSubjects: Array.isArray(parsedLocal.selectedSubjects) ? parsedLocal.selectedSubjects : (initialProfile.selectedSubjects || []),
+                                // Preserve local data if DB doesn't have it (e.g. bio)
+                                name: dbUser?.name || parsedLocal.name || initialProfile.name,
+                                bio: dbUser?.bio || parsedLocal.bio || initialProfile.bio || "",
+                                image: dbUser?.image || parsedLocal.image || initialProfile.image || "",
+                            };
+                            setProfile(mergedProfile);
+                            // Immediately sync to cache and dispatch event so Navbar reads the DB image right away on load
+                            localStorage.setItem(`teacher_profile_${currentEmail}`, JSON.stringify(mergedProfile));
+                            window.dispatchEvent(new Event('profileUpdate'));
+                        } catch (parseError) {
+                            console.error("Failed to parse local profile format:", parseError);
+                            setProfile(initialProfile);
+                            localStorage.setItem(`teacher_profile_${currentEmail}`, JSON.stringify(initialProfile));
+                            window.dispatchEvent(new Event('profileUpdate'));
+                        }
                     } else {
                         setProfile(initialProfile);
+                        localStorage.setItem(`teacher_profile_${currentEmail}`, JSON.stringify(initialProfile));
+                        window.dispatchEvent(new Event('profileUpdate'));
                     }
                 } catch (e) {
                     console.error("Failed to parse session", e);
+                    document.cookie = "session=; path=/; max-age=0;";
+                    document.cookie = "userRole=; path=/; max-age=0;";
+                    router.replace("/auth/login");
                 }
+            } else {
+                router.replace("/auth/login");
             }
 
             // Remove legacy key to prevent side effects
@@ -252,8 +273,15 @@ export default function TeacherProfilePage() {
         // 2. Update Local Cache
         localStorage.setItem(`teacher_profile_${profile.email}`, JSON.stringify(profile));
 
-        // 3. Update Session Cookie
-        const base64 = btoa(encodeURIComponent(JSON.stringify(updatedUser)));
+        // 3. Update Session Cookie with only essential fields to prevent 4KB browser size cutoff
+        const sessionData = {
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            role: "teacher",
+            course: profile.specialization
+        };
+        const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
         document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
 
         // 4. Notify UI

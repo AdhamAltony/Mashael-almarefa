@@ -139,7 +139,14 @@ export default function SignupPage() {
           return;
         }
 
-        const base64 = btoa(encodeURIComponent(JSON.stringify(userData)));
+        const sessionData = {
+            id: savedUserResult?.id || "",
+            email: userData.email,
+            name: userData.name,
+            role: userData.role,
+            course: userData.course
+        };
+        const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
         document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
 
         Swal.fire({
