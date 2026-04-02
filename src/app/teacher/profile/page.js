@@ -93,13 +93,16 @@ export default function TeacherProfilePage() {
                     };
 
                     // Merge with extended local profile data
-                    const savedProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
-                    if (savedProfile) {
-                        const parsed = JSON.parse(savedProfile);
+                    const savedLocalProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
+                    if (savedLocalProfile) {
+                        const parsedLocal = JSON.parse(savedLocalProfile);
                         setProfile({
                             ...initialProfile,
-                            ...parsed,
-                            ...initialProfile, // Database record takes priority!
+                            ...parsedLocal, // Local storage can have the bio if it's not yet synced to DB or recently changed
+                            // Only override from DB if DB actually has data for critical fields
+                            name: dbUser?.name || parsedLocal.name || initialProfile.name,
+                            bio: dbUser?.bio || parsedLocal.bio || initialProfile.bio,
+                            image: dbUser?.image || parsedLocal.image || initialProfile.image,
                         });
                     } else {
                         setProfile(initialProfile);
