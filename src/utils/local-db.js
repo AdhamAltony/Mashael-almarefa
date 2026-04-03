@@ -31,16 +31,26 @@ const mapUserFromSupabase = (u) => {
     }
 
     // 3. Construct flat object for UI
-    const subjectsStr = (combined.specialization || combined.course || combined.department || "");
-    const subjects = combined.registered_subjects || (combined.role === 'teacher' && subjectsStr.includes('(')
-        ? subjectsStr.match(/\((.*)\)/)?.[1].split(/[،,]/).map(s => s.trim()).filter(Boolean)
-        : (Array.isArray(combined.subjects) ? combined.subjects : [])) || [];
+    const regSubData = combined.registered_subjects;
+    let subjects = [];
+    let subscriptions = {};
+
+    if (regSubData && typeof regSubData === 'object' && !Array.isArray(regSubData)) {
+        subjects = regSubData.list || [];
+        subscriptions = regSubData.subs || {};
+    } else {
+        const subjectsStr = (combined.specialization || combined.course || combined.department || "");
+        subjects = regSubData || (combined.role === 'teacher' && subjectsStr.includes('(')
+            ? subjectsStr.match(/\((.*)\)/)?.[1].split(/[،,]/).map(s => s.trim()).filter(Boolean)
+            : (Array.isArray(combined.subjects) ? combined.subjects : [])) || [];
+    }
 
     return {
         ...combined,
         id: combined.id || combined.user_id,
         name: combined.name || combined.full_name || "",
         image: combined.photo_url || combined.image || "",
+        subscriptions: subscriptions,
         redirect: redirect,
         phone: combined.phone || "",
         department: combined.department || combined.course || "",
@@ -246,11 +256,16 @@ export const updateUser = async (updatedUser) => {
                 rating: updatedUser.rating
             }).eq('user_id', updatedUser.id);
         } else if (updatedUser.role === 'student') {
+            // Include subscriptions in the JSONB field for syncing
+            const regSubUpdate = {
+                list: updatedUser.subjects || [],
+                subs: updatedUser.subscriptions || {}
+            };
             await client.from('students_profile').update({
                 department: updatedUser.course || updatedUser.department,
                 guardian_name: updatedUser.guardian,
                 guardian_phone: updatedUser.guardianPhone,
-                registered_subjects: updatedUser.subjects,
+                registered_subjects: regSubUpdate,
                 country: updatedUser.country
             }).eq('user_id', updatedUser.id);
         }

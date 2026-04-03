@@ -169,12 +169,7 @@ export default function TeacherStudentsPage() {
                 const decoded = decodeURIComponent(atob(base64));
                 const sessionData = JSON.parse(decoded);
 
-                let deptName = sessionData.department || "";
-                if (!deptName && sessionData.course) {
-                    if (sessionData.course.includes("القرآن")) deptName = "ركن القرآن الكريم";
-                    else if (sessionData.course.includes("العربية")) deptName = "اللغة العربية لغير الناطقين";
-                    else if (sessionData.course.includes("المناهج")) deptName = "المناهج الدراسية";
-                }
+                let deptName = sessionData.department || sessionData.course || "";
                 setDepartment(deptName);
 
                 const teacherEmail = sessionData.email;
@@ -182,18 +177,28 @@ export default function TeacherStudentsPage() {
                 const allUsers = await getLocalUsers();
                 const filtered = allUsers.filter(u => {
                     if (u.role !== "student") return false;
-                    const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
                     const tEmail = teacherEmail?.trim().toLowerCase();
+                    const tName = sessionData.name?.trim().toLowerCase();
+
+                    // 1. Check DB-synced subscriptions map first
+                    const dbSubscriptions = u.subscriptions || {};
+                    if (Object.keys(dbSubscriptions).length > 0) {
+                        const isSubscribed = Object.values(dbSubscriptions).some(sub => 
+                            sub.email?.trim().toLowerCase() === tEmail || 
+                            sub.name?.trim().toLowerCase() === tName
+                        );
+                        if (isSubscribed) return true;
+                    }
+
+                    // 2. Fallback to LocalStorage for legacy or unsynced data
+                    const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
                     const sTeacherEmail = profile.assignedTeacherEmail?.trim().toLowerCase();
                     const sTeacherName = profile.assignedTeacher?.trim().toLowerCase();
-                    const tName = sessionData.name?.trim().toLowerCase();
                     
-                    // Check legacy fields
                     if (sTeacherEmail === tEmail || (sTeacherName && sTeacherName === tName)) return true;
 
-                    // Check new subscriptions object
-                    const subscriptions = profile.subscriptions || {};
-                    return Object.values(subscriptions).some(sub => 
+                    const localSubscriptions = profile.subscriptions || {};
+                    return Object.values(localSubscriptions).some(sub => 
                         sub.email?.trim().toLowerCase() === tEmail || 
                         sub.name?.trim().toLowerCase() === tName
                     );
@@ -230,12 +235,35 @@ export default function TeacherStudentsPage() {
         if (studentToDelete) {
             // Instead of deleting the user, we just unsubscribe them from this teacher
             const profileKey = `student_profile_${studentToDelete.email}`;
-            const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
+            const studentProfile = JSON.parse(localStorage.getItem(profileKey) || "{}");
             
+            // 1. Remove from subscriptions map
+            const subscriptions = studentProfile.subscriptions || {};
+            // Filter out subscriptions for this teacher (by email or name)
+            const teacherEmail = studentProfile.assignedTeacherEmail || ""; // Legacy
+            const teacherName = studentProfile.assignedTeacher || ""; // Legacy
+            
+            // Access current teacher info from session storage (where it was loaded in useEffect)
+            // But actually we have studentToDelete which might have old fields, or we can just clear everything that matches this teacher.
+            // Let's find the current teacher's identifier. 
+            // We can try to get it from the session again.
+            const cookies = document.cookie.split("; ");
+            const session = cookies.find(c => c.startsWith("session="));
+            let tIdentifier = "";
+            if (session) {
+                const data = JSON.parse(decodeURIComponent(atob(decodeURIComponent(session.split("=")[1]))));
+                tIdentifier = data.email?.trim().toLowerCase();
+            }
+
+            if (tIdentifier) {
+                delete subscriptions[tIdentifier];
+            }
+
             const updatedProfile = { 
-                ...profile, 
+                ...studentProfile, 
                 assignedTeacher: "", 
-                assignedTeacherEmail: "" 
+                assignedTeacherEmail: "",
+                subscriptions: subscriptions
             };
             
             localStorage.setItem(profileKey, JSON.stringify(updatedProfile));
@@ -243,6 +271,11 @@ export default function TeacherStudentsPage() {
             // Re-sync UI
             setStudents(prev => prev.filter(s => s.id !== studentToDelete.id));
             setStudentToDelete(null);
+
+            // Sync with Supabase (if possible)
+            import("@/utils/local-db").then(({ updateUser }) => {
+                updateUser({ ...updatedProfile, id: studentToDelete.id, email: studentToDelete.email, role: "student" });
+            });
             
             Swal.fire({
                 title: "تم الفصل!",
