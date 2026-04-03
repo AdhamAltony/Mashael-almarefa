@@ -63,7 +63,16 @@ function AttendanceContent() {
                     if (u.role !== "student") return false;
                     
                     const profile = JSON.parse(localStorage.getItem(`student_profile_${u.email}`) || "{}");
-                    return profile.assignedTeacherEmail === sessionData.email;
+                    const tEmail = sessionData.email?.trim().toLowerCase();
+                    
+                    // Check legacy field
+                    if (profile.assignedTeacherEmail?.trim().toLowerCase() === tEmail) return true;
+
+                    // Check new subscriptions object
+                    const subscriptions = profile.subscriptions || {};
+                    return Object.values(subscriptions).some(sub => 
+                        sub.email?.trim().toLowerCase() === tEmail
+                    );
                 });
                 
                 setStudents(filtered);

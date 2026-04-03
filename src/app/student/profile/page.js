@@ -118,17 +118,38 @@ export default function StudentProfilePage() {
           const localData = localStorage.getItem(`student_profile_${currentEmail}`);
           if (localData) {
             const parsedLocal = JSON.parse(localData);
-            let teacherImage = "";
+            const subscriptions = parsedLocal.subscriptions || {};
+            
+            // Fetch images and specialties for all teachers
+            const teacherImages = {};
+            const teacherSpecialties = {};
+            for (const [key, teacher] of Object.entries(subscriptions)) {
+              if (teacher.email) {
+                const tProfile = localStorage.getItem(`teacher_profile_${teacher.email}`);
+                if (tProfile) {
+                  const parsed = JSON.parse(tProfile);
+                  teacherImages[key] = parsed.image || "";
+                  teacherSpecialties[key] = parsed.specialization || parsed.course || parsed.department || "";
+                }
+              }
+            }
+            
+            // Legacy support
+            let mainTeacherImage = "";
             if (parsedLocal.assignedTeacherEmail) {
               const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
               if (tProfile) {
-                teacherImage = JSON.parse(tProfile).image || "";
+                mainTeacherImage = JSON.parse(tProfile).image || "";
               }
             }
+
             setStudent({
               ...initialFromSession,
               ...parsedLocal,
-              assignedTeacherImage: teacherImage
+              image: parsedLocal.image || initialFromSession.image || "", // Prefer local, fall back to DB/Session
+              assignedTeacherImage: mainTeacherImage,
+              teacherImages: teacherImages,
+              teacherSpecialties: teacherSpecialties
             });
           } else {
             setStudent(initialFromSession);
@@ -216,7 +237,8 @@ export default function StudentProfilePage() {
               email: updatedStudent.email,
               name: updatedStudent.name,
               role: updatedStudent.role,
-              course: updatedStudent.course
+              course: updatedStudent.course,
+              image: updatedStudent.image
           };
           const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
           document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
@@ -264,7 +286,8 @@ export default function StudentProfilePage() {
         email: finalStudent.email,
         name: finalStudent.name,
         role: finalStudent.role,
-        course: finalStudent.course
+        course: finalStudent.course,
+        image: finalStudent.image
     };
     const base64 = btoa(encodeURIComponent(JSON.stringify(sessionData)));
     document.cookie = `session=${encodeURIComponent(base64)}; path=/; max-age=86400`;
@@ -304,11 +327,11 @@ export default function StudentProfilePage() {
                 </p>
                 <h1 className="mt-3 text-2xl font-black text-emerald-950 sm:text-3xl">{student.name}</h1>
                 <p className="mt-1 text-sm text-slate-600">{student.level}</p>
-                <div className="mt-2 flex items-center gap-4">
-                  <p className="text-sm font-medium text-slate-700 mt-1">
-                    المعلم المسؤول: <span className="font-bold text-emerald-900 border-b border-emerald-200">{student.assignedTeacher || "لم يتم الاشتراك بعد"}</span>
+                <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+                  <p className="text-sm font-medium text-slate-700">
+                    عدد المعلمين المشترك معهم: <span className="font-bold text-emerald-900 border-b border-emerald-200">{Object.keys(student.subscriptions || {}).length}</span>
                   </p>
-                  <p className="text-sm font-medium text-slate-500 mt-1">
+                  <p className="text-sm font-medium text-slate-500">
                     رقم الطالب: <span className="font-bold text-emerald-800">{student.student_code}</span>
                   </p>
                   {saved && <span className="text-xs font-bold text-emerald-600 animate-bounce">تم حفظ التغييرات!</span>}
@@ -579,21 +602,39 @@ export default function StudentProfilePage() {
             </div>
 
             <div className="mt-10 pt-6 border-t border-emerald-50">
-              <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلم المسؤول</p>
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white overflow-hidden">
-                  {student.assignedTeacherImage ? (
-                    <img src={student.assignedTeacherImage} alt={student.assignedTeacher} className="h-full w-full object-cover" />
-                  ) : (
-                    student.assignedTeacher?.charAt(0) || "؟"
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm font-black text-emerald-950">{student.assignedTeacher || "لم يتم الاشتراك"}</p>
-                  <p className="text-[10px] font-bold text-emerald-600 uppercase">
-                    {student.assignedTeacher ? "معلمك الحالي" : "بانتظار اختيار معلم"}
-                  </p>
-                </div>
+              <p className="text-xs font-bold text-slate-400 mb-3 tracking-widest uppercase">المعلمون المسؤولون</p>
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1 thin-scrollbar">
+                {Object.entries(student.subscriptions || {}).length > 0 ? (
+                  Object.entries(student.subscriptions || {}).map(([email, teacher]) => {
+                    const specialization = student.teacherSpecialties?.[email] || "";
+                    const img = student.teacherImages?.[email];
+                    return (
+                      <div key={email} className="flex items-center gap-3 p-2 rounded-xl border border-emerald-50 bg-emerald-50/30">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-700 font-black shadow-inner border border-white overflow-hidden">
+                          {img ? (
+                            <img src={img} alt={teacher.name} className="h-full w-full object-cover" />
+                          ) : (
+                            teacher.name?.charAt(0) || "؟"
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-emerald-950 truncate">{teacher.name}</p>
+                          <p className="text-[9px] font-bold text-emerald-600 leading-tight line-clamp-2">
+                            {specialization || "غير محدد"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-black shadow-inner">؟</div>
+                    <div>
+                      <p className="text-xs font-black text-slate-500">لم يتم الاشتراك بعد</p>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">بانتظار اختيار معلمين</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </article>

@@ -222,6 +222,10 @@ export const updateUser = async (updatedUser) => {
     if (!client) return;
 
     try {
+        if (!updatedUser.id || updatedUser.id === "undefined") {
+            console.error("updateUser: Missing or invalid user ID. Update aborted.", updatedUser);
+            return;
+        }
         cachedUsers = null;
 
         // 1. Update core table

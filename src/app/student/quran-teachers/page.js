@@ -52,7 +52,7 @@ export default function QuranTeachersPage() {
                     const studentProf = localStorage.getItem(`student_profile_${data.email}`);
                     if (studentProf) {
                         const parsed = JSON.parse(studentProf);
-                        setAssignedTeacher(parsed.assignedTeacher || "");
+                        // No longer a single string, but check if we need a place-holder or leave for display logic
                     }
                 } catch { }
             }
@@ -64,22 +64,42 @@ export default function QuranTeachersPage() {
     const handleSubscribe = (teacherName, teacherEmail) => {
         if (!student) return;
         const profile = JSON.parse(localStorage.getItem(`student_profile_${student.email}`) || "{}");
-        const isSubscribed = assignedTeacher === teacherName;
-        const newTeacher = isSubscribed ? "" : teacherName;
-        const newEmail = isSubscribed ? "" : teacherEmail;
-
-        const updated = { ...profile, assignedTeacher: newTeacher, assignedTeacherEmail: newEmail };
-        localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
-        setAssignedTeacher(newTeacher);
-
+        const subscriptions = profile.subscriptions || {};
         const S = require("sweetalert2");
+
+        const isSubscribed = !!subscriptions[teacherEmail];
+        
+        if (isSubscribed) {
+            delete subscriptions[teacherEmail];
+        } else {
+            subscriptions[teacherEmail] = { 
+                name: teacherName, 
+                email: teacherEmail, 
+                category: "quran" 
+            };
+        }
+
+        const updated = { 
+            ...profile, 
+            subscriptions
+        };
+
+        localStorage.setItem(`student_profile_${student.email}`, JSON.stringify(updated));
+        // Force refresh local state to update UI buttons
+        setStudent({ ...student }); 
+
         S.fire({
-            title: newTeacher ? "تم الاشتراك بنجاح!" : "تم إلغاء الاشتراك",
-            text: newTeacher ? `أنت الآن مشترك مع ${teacherName}` : "يمكنك الاشتراك مع معلم آخر في أي وقت",
+            title: isSubscribed ? "تم إلغاء الاشتراك" : "تم الاشتراك بنجاح!",
+            text: isSubscribed ? "يمكنك الاشتراك مع معلم آخر في أي وقت" : `أنت الآن مشترك مع ${teacherName}`,
             icon: "success",
             confirmButtonText: "حسناً",
             confirmButtonColor: "#059669",
             timer: 2000
+        });
+
+        // Sync with Supabase
+        import("@/utils/local-db").then(({ updateUser }) => {
+            updateUser({ ...updated, id: student.id, email: student.email, role: "student" });
         });
     };
 
@@ -169,15 +189,25 @@ export default function QuranTeachersPage() {
                                     {isLoggedIn && (
                                         <button
                                             onClick={() => handleSubscribe(teacher.name, teacher.email)}
-                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${assignedTeacher === teacher.name
+                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${
+                                                (() => {
+                                                    const profile = JSON.parse(localStorage.getItem(`student_profile_${student?.email}`) || "{}");
+                                                    return profile.subscriptions?.[teacher.email];
+                                                })()
                                                     ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
                                                     : "border-emerald-600 bg-white text-emerald-600 hover:bg-emerald-50"
                                                 }`}
                                         >
                                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={assignedTeacher === teacher.name ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={(() => {
+                                                    const profile = JSON.parse(localStorage.getItem(`student_profile_${student?.email}`) || "{}");
+                                                    return profile.subscriptions?.[teacher.email];
+                                                })() ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
                                             </svg>
-                                            {assignedTeacher === teacher.name ? "عدم الاشتراك" : "اشتراك"}
+                                            {(() => {
+                                                const profile = JSON.parse(localStorage.getItem(`student_profile_${student?.email}`) || "{}");
+                                                return profile.subscriptions?.[teacher.email];
+                                            })() ? "عدم الاشتراك" : "اشتراك"}
                                         </button>
                                     )}
 

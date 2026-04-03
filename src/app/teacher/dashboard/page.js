@@ -52,7 +52,15 @@ export default function TeacherDashboardPage() {
                 const sTeacherName = profile.assignedTeacher?.trim().toLowerCase();
                 const tName = session?.name?.trim().toLowerCase();
 
-                return sTeacherEmail === tEmail || (sTeacherName && sTeacherName === tName);
+                // Check legacy fields
+                if (sTeacherEmail === tEmail || (sTeacherName && sTeacherName === tName)) return true;
+
+                // Check new subscriptions object
+                const subscriptions = profile.subscriptions || {};
+                return Object.values(subscriptions).some(sub => 
+                    sub.email?.trim().toLowerCase() === tEmail || 
+                    sub.name?.trim().toLowerCase() === tName
+                );
             });
 
             const teacherDoneCount = localStorage.getItem(`teacher_done_${session?.email}`) || "0";

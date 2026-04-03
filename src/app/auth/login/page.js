@@ -65,6 +65,7 @@ export default function LoginPage() {
         email: userByEmail.email,
         name: userByEmail.name,
         role: userByEmail.role,
+        image: userByEmail.image,
         redirect: userByEmail.redirect,
         course: userByEmail.course || userByEmail.department || "",
         status: userByEmail.status
