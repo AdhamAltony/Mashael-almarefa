@@ -29,12 +29,8 @@ export default function StudentCoursesPage() {
             }
         }
 
-        const userAssignedCourseTitles = JSON.parse(localStorage.getItem(`assigned_courses_${currentUserEmail}`) || "[]");
         const allPlatformVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
-        
-        const filteredVideos = allPlatformVideos.filter(video => 
-            userAssignedCourseTitles.includes(video.title) && video.videoUrl && video.videoUrl !== "#"
-        ).map(video => ({
+        const formattedVideos = allPlatformVideos.filter(v => v.videoUrl && v.videoUrl !== "#").map(video => ({
             id: video.id,
             title: video.title,
             description: video.notes || "لا يوجد وصف لهذه الدورة حالياً.",
@@ -44,9 +40,31 @@ export default function StudentCoursesPage() {
             icon: '🎥'
         }));
 
-        setAssignedCourses(filteredVideos);
+        setAssignedCourses(formattedVideos);
         setLoading(false);
     }, []);
+
+    const handleVideoClick = (course) => {
+        if (!user) {
+            Swal.fire({
+                title: 'تنبيه',
+                text: 'يجب عليك تسجيل الدخول أولاً لمشاهدة محتوى هذه الدورة.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'تسجيل الدخول',
+                cancelButtonText: 'إغلاق',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/auth/login';
+                }
+            });
+            return;
+        }
+        setSelectedVideo(course);
+        setVideoError(false);
+    };
 
     const handleVideoError = (e) => {
         const isDev = process.env.NODE_ENV === 'development';
@@ -73,38 +91,22 @@ export default function StudentCoursesPage() {
                 <span className="mb-4 inline-block rounded-full bg-emerald-100 px-5 py-2 text-sm font-bold text-emerald-700 shadow-sm border border-emerald-200/50">
                     مركز الدورات التعليمية
                 </span>
-                <h1 className="text-3xl font-black text-emerald-950 sm:text-4xl">دوراتي التعليمية</h1>
-                <p className="mt-4 text-slate-600 font-medium">
-                    هنا تجد جميع الفيديوهات والدورات التي تمت إتاحتها لك من قبل الإدارة.
+                <h1 className="text-3xl font-black text-emerald-950 sm:text-4xl">الدورات التعليمية المتاحة</h1>
+                <p className="mt-2 text-slate-600 font-medium">
+                    تصفح مجموعة واسعة من الدورات التعليمية واللقاءات المسجلة.
                 </p>
             </header>
 
-            {!user ? (
-                <div className="modern-card flex flex-col items-center justify-center py-24 text-center rounded-[3rem] bg-white/60 border border-white shadow-xl">
-                    <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-amber-50 text-amber-500 shadow-inner">
-                        <svg className="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-2xl font-black text-emerald-950">يرجى تسجيل الدخول أولاً</h2>
-                    <p className="mt-3 max-w-sm text-slate-500 font-medium leading-relaxed">
-                        يجب عليك تسجيل الدخول أو إنشاء حساب جديد لتتمكن من الوصول إلى الدورات التعليمية والدروس المسجلة.
-                    </p>
-                    <div className="mt-8 flex gap-4">
-                        <Link href="/auth/login" className="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-700 transition-all">تسجيل الدخول</Link>
-                        <Link href="/auth/signup" className="px-8 py-3 bg-white border border-emerald-200 text-emerald-700 rounded-2xl font-black hover:bg-emerald-50 transition-all">إنشاء حساب</Link>
-                    </div>
-                </div>
-            ) : assignedCourses.length === 0 ? (
+            {assignedCourses.length === 0 ? (
                 <div className="modern-card flex flex-col items-center justify-center py-24 text-center rounded-[3rem] bg-white/60 border border-white shadow-xl">
                     <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 text-emerald-200 shadow-inner">
                         <svg className="h-14 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-black text-emerald-950">لا توجد دورات متاحة لك حالياً</h2>
+                    <h2 className="text-2xl font-black text-emerald-950">لا توجد دورات متاحة حالياً</h2>
                     <p className="mt-3 max-w-sm text-slate-500 font-medium leading-relaxed">
-                        لم يتم عرض أي محتوى لك بعد؛ يرجى التواصل مع الإدارة لتفعيل الدورات الخاصة بك.
+                        سيتم إضافة المحتوى التعليمي قريباً؛ يرجى العودة لاحقاً.
                     </p>
                 </div>
             ) : (
@@ -131,7 +133,7 @@ export default function StudentCoursesPage() {
                                 </p>
                                 <div className="mt-auto">
                                     <button
-                                        onClick={() => { setSelectedVideo(course); setVideoError(false); }}
+                                        onClick={() => handleVideoClick(course)}
                                         className="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-emerald-950 px-6 py-4 text-sm font-black text-white transition-all hover:bg-black hover:scale-[1.02] active:scale-95 shadow-lg shadow-emerald-950/10"
                                     >
                                         <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
