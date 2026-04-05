@@ -139,6 +139,24 @@ export default function SignupPage() {
           return;
         }
 
+        // Clean up any stale localStorage for this email on the current device
+        // This ensures the new account starts fresh even if an old one existed on this machine
+        if (typeof window !== 'undefined') {
+            const email = userData.email;
+            const keysToRemove = [
+                `sessions_${email}`,
+                `progress_${email}`,
+                `assigned_courses_${email}`,
+                `student_profile_${email}`,
+                `teacher_profile_${email}`,
+                `teacher_portfolio_${email}`,
+                `upcoming_sessions_${email}`,
+                `sessions_schedule_${email}`,
+                `teacher_sessions_${email}`
+            ];
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+        }
+
         const sessionData = {
             id: savedUserResult?.id || "",
             email: userData.email,

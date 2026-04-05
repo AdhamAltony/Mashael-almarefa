@@ -92,35 +92,45 @@ export default function TeacherProfilePage() {
                         bio: dbUser?.bio || data.bio || "",
                     };
 
-                    // Merge with extended local profile data from cache to avoid losing unsaved/un-synced changes
-                    const savedLocalProfile = localStorage.getItem(`teacher_profile_${currentEmail}`);
+                    const localDataKey = `teacher_profile_${currentEmail}`;
+                    const savedLocalProfile = localStorage.getItem(localDataKey);
+                    
                     if (savedLocalProfile) {
                         try {
                             const parsedLocal = JSON.parse(savedLocalProfile);
-                            const mergedProfile = {
-                                ...initialProfile,
-                                ...parsedLocal,
-                                // Ensure arrays are strictly arrays, otherwise fallback to initial data to avoid .map() crashing on strings
-                                selectedDepartments: Array.isArray(parsedLocal.selectedDepartments) ? parsedLocal.selectedDepartments : (initialProfile.selectedDepartments || ["quran"]),
-                                selectedSubjects: Array.isArray(parsedLocal.selectedSubjects) ? parsedLocal.selectedSubjects : (initialProfile.selectedSubjects || []),
-                                // Preserve local data if DB doesn't have it (e.g. bio)
-                                name: dbUser?.name || parsedLocal.name || initialProfile.name,
-                                bio: dbUser?.bio || parsedLocal.bio || initialProfile.bio || "",
-                                image: dbUser?.image || parsedLocal.image || initialProfile.image || "",
-                            };
-                            setProfile(mergedProfile);
-                            // Immediately sync to cache and dispatch event so Navbar reads the DB image right away on load
-                            localStorage.setItem(`teacher_profile_${currentEmail}`, JSON.stringify(mergedProfile));
-                            window.dispatchEvent(new Event('profileUpdate'));
+                            
+                            // Check if this localStorage belongs to a previous, deleted user with the same email
+                            if (parsedLocal.id && parsedLocal.id !== initialProfile.id) {
+                                console.warn("Detected old teacher profile. Wiping local data for new account.");
+                                localStorage.removeItem(localDataKey);
+                                localStorage.removeItem(`teacher_portfolio_${currentEmail}`);
+                                setProfile(initialProfile);
+                            } else {
+                                const mergedProfile = {
+                                    ...initialProfile,
+                                    ...parsedLocal,
+                                    // Ensure arrays are strictly arrays, otherwise fallback to initial data to avoid .map() crashing on strings
+                                    selectedDepartments: Array.isArray(parsedLocal.selectedDepartments) ? parsedLocal.selectedDepartments : (initialProfile.selectedDepartments || ["quran"]),
+                                    selectedSubjects: Array.isArray(parsedLocal.selectedSubjects) ? parsedLocal.selectedSubjects : (initialProfile.selectedSubjects || []),
+                                    // Preserve local data if DB doesn't have it (e.g. bio)
+                                    name: dbUser?.name || parsedLocal.name || initialProfile.name,
+                                    bio: dbUser?.bio || parsedLocal.bio || initialProfile.bio || "",
+                                    image: dbUser?.image || parsedLocal.image || initialProfile.image || "",
+                                };
+                                setProfile(mergedProfile);
+                                // Immediately sync to cache and dispatch event so Navbar reads the DB image right away on load
+                                localStorage.setItem(localDataKey, JSON.stringify(mergedProfile));
+                                window.dispatchEvent(new Event('profileUpdate'));
+                            }
                         } catch (parseError) {
                             console.error("Failed to parse local profile format:", parseError);
                             setProfile(initialProfile);
-                            localStorage.setItem(`teacher_profile_${currentEmail}`, JSON.stringify(initialProfile));
+                            localStorage.setItem(localDataKey, JSON.stringify(initialProfile));
                             window.dispatchEvent(new Event('profileUpdate'));
                         }
                     } else {
                         setProfile(initialProfile);
-                        localStorage.setItem(`teacher_profile_${currentEmail}`, JSON.stringify(initialProfile));
+                        localStorage.setItem(localDataKey, JSON.stringify(initialProfile));
                         window.dispatchEvent(new Event('profileUpdate'));
                     }
                 } catch (e) {

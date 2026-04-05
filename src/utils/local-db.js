@@ -191,7 +191,12 @@ export const deleteUser = async (id, email) => {
     if (!client) return;
 
     try {
-        // Robust delete from the parent users table
+        // 1. Manually delete from profile tables first to avoid foreign key violations
+        // This ensures the main delete doesn't fail if CASCADE is not set.
+        await client.from('students_profile').delete().eq('user_id', id);
+        await client.from('teachers_profile').delete().eq('user_id', id);
+        
+        // 2. Delete from the parent users table
         const { error } = await client
             .from('users')
             .delete()
@@ -202,21 +207,28 @@ export const deleteUser = async (id, email) => {
             throw error;
         }
 
-        // 2. Local Cleanup (Only in browser)
+        // 3. Local Cleanup (Only in browser)
         cachedUsers = null;
         if (email && typeof window !== 'undefined') {
-            // Find and remove all keys ending with the email
-            localStorage.removeItem(`sessions_${email}`);
-            localStorage.removeItem(`progress_${email}`);
-            localStorage.removeItem(`assigned_courses_${email}`);
-            localStorage.removeItem(`student_profile_${email}`);
-            localStorage.removeItem(`teacher_profile_${email}`);
-            localStorage.removeItem(`teacher_portfolio_${email}`);
+            // Comprehensive cleanup of all possible localStorage keys associated with this email
+            const keysToRemove = [
+                `sessions_${email}`,
+                `progress_${email}`,
+                `assigned_courses_${email}`,
+                `student_profile_${email}`,
+                `teacher_profile_${email}`,
+                `teacher_portfolio_${email}`,
+                `upcoming_sessions_${email}`,
+                `sessions_schedule_${email}`,
+                `teacher_sessions_${email}`
+            ];
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
 
-            // Clean up any session-based localStorage items
+            // Clean up any other potential session-based localStorage items containing the email
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.includes(email)) {
+                if (key && (key.includes(email) || key.includes(id))) {
                     localStorage.removeItem(key);
                     i--; // Adjust index after removal
                 }

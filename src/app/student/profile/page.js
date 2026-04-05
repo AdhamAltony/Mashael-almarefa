@@ -115,42 +115,54 @@ export default function StudentProfilePage() {
             joinDate: dbUser?.joinDate || data.joinDate || new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
           };
 
-          const localData = localStorage.getItem(`student_profile_${currentEmail}`);
+          const localDataKey = `student_profile_${currentEmail}`;
+          const localData = localStorage.getItem(localDataKey);
+          
           if (localData) {
             const parsedLocal = JSON.parse(localData);
-            const subscriptions = parsedLocal.subscriptions || {};
             
-            // Fetch images and specialties for all teachers
-            const teacherImages = {};
-            const teacherSpecialties = {};
-            for (const [key, teacher] of Object.entries(subscriptions)) {
-              if (teacher.email) {
-                const tProfile = localStorage.getItem(`teacher_profile_${teacher.email}`);
-                if (tProfile) {
-                  const parsed = JSON.parse(tProfile);
-                  teacherImages[key] = parsed.image || "";
-                  teacherSpecialties[key] = parsed.specialization || parsed.course || parsed.department || "";
+            // Check if this localStorage belongs to a previous, deleted user with the same email
+            if (parsedLocal.id && parsedLocal.id !== initialFromSession.id) {
+                console.warn("Detected old student profile. Wiping local data for new account.");
+                localStorage.removeItem(localDataKey);
+                localStorage.removeItem(`progress_${currentEmail}`);
+                localStorage.removeItem(`sessions_${currentEmail}`);
+                setStudent(initialFromSession);
+            } else {
+                const subscriptions = parsedLocal.subscriptions || {};
+                
+                // Fetch images and specialties for all teachers
+                const teacherImages = {};
+                const teacherSpecialties = {};
+                for (const [key, teacher] of Object.entries(subscriptions)) {
+                  if (teacher.email) {
+                    const tProfile = localStorage.getItem(`teacher_profile_${teacher.email}`);
+                    if (tProfile) {
+                      const parsed = JSON.parse(tProfile);
+                      teacherImages[key] = parsed.image || "";
+                      teacherSpecialties[key] = parsed.specialization || parsed.course || parsed.department || "";
+                    }
+                  }
                 }
-              }
-            }
-            
-            // Legacy support
-            let mainTeacherImage = "";
-            if (parsedLocal.assignedTeacherEmail) {
-              const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
-              if (tProfile) {
-                mainTeacherImage = JSON.parse(tProfile).image || "";
-              }
-            }
+                
+                // Legacy support
+                let mainTeacherImage = "";
+                if (parsedLocal.assignedTeacherEmail) {
+                  const tProfile = localStorage.getItem(`teacher_profile_${parsedLocal.assignedTeacherEmail}`);
+                  if (tProfile) {
+                    mainTeacherImage = JSON.parse(tProfile).image || "";
+                  }
+                }
 
-            setStudent({
-              ...initialFromSession,
-              ...parsedLocal,
-              image: parsedLocal.image || initialFromSession.image || "", // Prefer local, fall back to DB/Session
-              assignedTeacherImage: mainTeacherImage,
-              teacherImages: teacherImages,
-              teacherSpecialties: teacherSpecialties
-            });
+                setStudent({
+                  ...initialFromSession,
+                  ...parsedLocal,
+                  image: parsedLocal.image || initialFromSession.image || "", // Prefer local, fall back to DB/Session
+                  assignedTeacherImage: mainTeacherImage,
+                  teacherImages: teacherImages,
+                  teacherSpecialties: teacherSpecialties
+                });
+            }
           } else {
             setStudent(initialFromSession);
           }
