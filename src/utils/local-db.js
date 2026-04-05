@@ -285,3 +285,125 @@ export const updateUser = async (updatedUser) => {
         console.error('Update Failed Details:', error.message || error);
     }
 };
+
+/**
+ * Attendance & Progress Syncing
+ */
+
+export const submitAttendance = async (logData) => {
+    const client = getSupabaseOrWarn("submitAttendance");
+    if (!client) return;
+
+    try {
+        const { error } = await client.from('attendance_logs').insert([logData]);
+        if (error) throw error;
+        
+        // Also update local cache for immediate feedback
+        if (typeof window !== 'undefined') {
+            const logs = JSON.parse(localStorage.getItem(`attendance_${logData.student_email}`) || "[]");
+            logs.push(logData);
+            localStorage.setItem(`attendance_${logData.student_email}`, JSON.stringify(logs));
+        }
+    } catch (err) {
+        console.error("Failed to sync attendance to database:", err);
+    }
+};
+
+export const getAttendanceHistory = async (studentEmail) => {
+    const client = getSupabaseOrWarn("getAttendanceHistory");
+    if (!client) return [];
+
+    try {
+        const { data, error } = await client
+            .from('attendance_logs')
+            .select('*')
+            .eq('student_email', studentEmail)
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+        
+        // Sync to local for future offline use
+        if (typeof window !== 'undefined' && data) {
+            localStorage.setItem(`attendance_${studentEmail}`, JSON.stringify(data));
+        }
+
+        return data || [];
+    } catch (err) {
+        console.error("Failed to fetch attendance history:", err);
+        return [];
+    }
+};
+
+export const saveStudentProgress = async (studentEmail, progressData, sessionsData) => {
+    const client = getSupabaseOrWarn("saveStudentProgress");
+    if (!client) return;
+
+    try {
+        // Find the user ID first
+        const allUsers = await getLocalUsers();
+        const student = allUsers.find(u => u.email === studentEmail);
+        if (!student) return;
+
+        // We'll use the JSONB field 'registered_subjects' to store progress if specialized columns don't exist
+        // or we check if progress_data exists. Let's try updating specifically.
+        const { error } = await client
+            .from('students_profile')
+            .update({
+                progress_data: progressData,
+                upcoming_sessions: sessionsData
+            })
+            .eq('user_id', student.id);
+
+        if (error) {
+            // Fallback: If specialized columns don't exist, use the registered_subjects structure
+            console.warn("Retrying progress save using nested JSON structure...");
+            const currentReg = student.registered_subjects || {};
+            await client
+                .from('students_profile')
+                .update({
+                    registered_subjects: {
+                        ...currentReg,
+                        progress: progressData,
+                        sessions: sessionsData
+                    }
+                })
+                .eq('user_id', student.id);
+        }
+    } catch (err) {
+        console.error("Failed to save progress to database:", err);
+    }
+};
+
+export const syncStudentData = async (studentEmail) => {
+    const client = getSupabaseOrWarn("syncStudentData");
+    if (!client || typeof window === 'undefined') return;
+
+    try {
+        const { data, error } = await client
+            .from('users')
+            .select('*, students_profile (*)')
+            .eq('email', studentEmail)
+            .single();
+
+        if (error || !data) return;
+
+        const profile = data.students_profile?.[0] || data.students_profile || {};
+        
+        // Sync Progress
+        if (profile.progress_data) {
+            localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(profile.progress_data));
+        } else if (profile.registered_subjects?.progress) {
+            localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(profile.registered_subjects.progress));
+        }
+
+        // Sync Sessions
+        if (profile.upcoming_sessions) {
+            localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(profile.upcoming_sessions));
+        } else if (profile.registered_subjects?.sessions) {
+            localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(profile.registered_subjects.sessions));
+        }
+        
+    } catch (err) {
+        console.error("Sync failed:", err);
+    }
+};

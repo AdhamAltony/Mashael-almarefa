@@ -103,15 +103,29 @@ function AttendanceContent() {
         fetchAttendanceData();
     }, [router, initialEmail]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 1. Save attendance log for the student
+        const { submitAttendance } = await import("@/utils/local-db");
+
+        // 1. Prepare data for database
+        const dbAttendanceLog = {
+            student_email: formData.studentEmail,
+            date: formData.date,
+            status: formData.status,
+            duration: formData.duration,
+            topic: formData.topic,
+            rating: formData.rating,
+            notes: formData.notes,
+            teacher_email: "" 
+        };
+
+        // 2. Save attendance log for the student locally
         const logs = JSON.parse(localStorage.getItem(`attendance_${formData.studentEmail}`) || "[]");
         logs.push(formData);
         localStorage.setItem(`attendance_${formData.studentEmail}`, JSON.stringify(logs));
         
-        // 2. Increment Teacher Completed Sessions
+        // 3. Sync to Supabase
         const cookies = document.cookie.split("; ");
         const sessionCookie = cookies.find(c => c.startsWith("session="));
         if (sessionCookie) {
@@ -122,21 +136,24 @@ function AttendanceContent() {
                 const teacherEmail = sessionData.email;
                 
                 if (teacherEmail) {
+                    dbAttendanceLog.teacher_email = teacherEmail;
+                    
                     const currentCount = parseInt(localStorage.getItem(`teacher_done_${teacherEmail}`) || "0");
                     localStorage.setItem(`teacher_done_${teacherEmail}`, (currentCount + 1).toString());
                     
-                    // 3. Save to Teacher's individual history for Admin review
                     const teacherHistory = JSON.parse(localStorage.getItem(`teacher_history_${teacherEmail}`) || "[]");
                     const studentName = students.find(s => s.email === formData.studentEmail)?.name || "طالب غير معروف";
                     teacherHistory.push({ ...formData, studentName, timestamp: new Date().getTime() });
                     localStorage.setItem(`teacher_history_${teacherEmail}`, JSON.stringify(teacherHistory));
 
-                    // Also update Admin global sessions count
                     const adminTotal = parseInt(localStorage.getItem("admin_total_sessions") || "0");
                     localStorage.setItem("admin_total_sessions", (adminTotal + 1).toString());
                 }
             } catch (err) { console.error("Session sync error:", err); }
         }
+
+        // Trigger Sync
+        await submitAttendance(dbAttendanceLog);
 
         setSaved(true);
         setTimeout(() => {

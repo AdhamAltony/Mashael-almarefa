@@ -28,11 +28,17 @@ function ProgressModal({ student, onClose, onSave }) {
     const [newSession, setNewSession] = useState({ date: "", time: "", meetLink: "" });
 
     useEffect(() => {
-        const savedProgress = localStorage.getItem(`progress_${student.email}`);
-        if (savedProgress) setProgress(JSON.parse(savedProgress));
+        const fetchLatest = async () => {
+            const { syncStudentData } = await import("@/utils/local-db");
+            await syncStudentData(student.email);
+            
+            const savedProgress = localStorage.getItem(`progress_${student.email}`);
+            if (savedProgress) setProgress(JSON.parse(savedProgress));
 
-        const savedSessions = localStorage.getItem(`sessions_${student.email}`);
-        if (savedSessions) setSessions(JSON.parse(savedSessions));
+            const savedSessions = localStorage.getItem(`sessions_${student.email}`);
+            if (savedSessions) setSessions(JSON.parse(savedSessions));
+        };
+        fetchLatest();
     }, [student.email]);
 
     const handleAddSession = () => {
@@ -225,8 +231,18 @@ export default function TeacherStudentsPage() {
         fetchStudents();
     }, [router]);
 
-    const handleSave = (studentEmail, progress) => {
+    const handleSave = async (studentEmail, progress) => {
+        const { saveStudentProgress } = await import("@/utils/local-db");
+        
+        // 1. Save locally
         localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(progress));
+        
+        // 2. Get sessions for this student to sync as well
+        const studentSessions = JSON.parse(localStorage.getItem(`sessions_${studentEmail}`) || "[]");
+        
+        // 3. Sync to Supabase
+        await saveStudentProgress(studentEmail, progress, studentSessions);
+        
         alert("تم حفظ بيانات التقدم بنجاح!");
         setSelectedStudent(null);
     };

@@ -19,8 +19,22 @@ export default function AdminTeacherSessionsPage() {
       // Load financial settings (rate and amount received)
       const savedFinancials = JSON.parse(localStorage.getItem("admin_teachers_financials") || "{}");
 
-      const teachersData = realTeachers.map(u => {
-        const sessions = parseInt(localStorage.getItem(`teacher_done_${u.email}`) || "0");
+      const teachersData = await Promise.all(realTeachers.map(async (u) => {
+        // Fetch real count from database instead of localStorage
+        const { getSupabaseOrWarn } = await import("@/utils/local-db");
+        const client = getSupabaseOrWarn("AdminFetchSessions");
+        let sessions = 0;
+        
+        if (client) {
+            const { count } = await client
+                .from('attendance_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('teacher_email', u.email);
+            sessions = count || 0;
+        } else {
+            sessions = parseInt(localStorage.getItem(`teacher_done_${u.email}`) || "0");
+        }
+
         const financial = savedFinancials[u.email] || { rate: 50, received: 0 };
 
         return {
@@ -34,7 +48,7 @@ export default function AdminTeacherSessionsPage() {
           image: u.image || "",
           status: u.status || "نشط",
         };
-      });
+      }));
 
       setTeachers(teachersData);
     };
@@ -179,9 +193,33 @@ export default function AdminTeacherSessionsPage() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-center">
                       <button
-                        onClick={() => {
-                          const history = JSON.parse(localStorage.getItem(`teacher_history_${teacher.email}`) || "[]");
-                          setHistoryModal({ name: teacher.name, email: teacher.email, logs: history });
+                        onClick={async () => {
+                          const { getAttendanceHistory } = await import("@/utils/local-db");
+                          const logs = await getAttendanceHistory(""); // No student filter, let's fetch for this teacher
+                          
+                          // Custom fetch for this teacher's logs specifically
+                          const { getSupabaseOrWarn } = await import("@/utils/local-db");
+                          const client = getSupabaseOrWarn("AdminFetchHistory");
+                          let teacherLogs = [];
+                          
+                          if (client) {
+                            const { data } = await client
+                              .from('attendance_logs')
+                              .select('*')
+                              .eq('teacher_email', teacher.email)
+                              .order('date', { ascending: false });
+                            teacherLogs = data || [];
+                          } else {
+                            teacherLogs = JSON.parse(localStorage.getItem(`teacher_history_${teacher.email}`) || "[]");
+                          }
+                          
+                          // Ensure we have student names if from DB (they might be in student_email field)
+                          const logsWithNames = teacherLogs.map(l => ({
+                            ...l,
+                            studentName: l.studentName || l.student_email?.split('@')[0] || "طالب"
+                          }));
+
+                          setHistoryModal({ name: teacher.name, email: teacher.email, logs: logsWithNames });
                         }}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-slate-50 px-4 py-2 hover:bg-emerald-500 transition-all text-xs font-bold text-slate-400 hover:text-white"
                       >

@@ -167,10 +167,19 @@ export default function StudentProfilePage() {
             setStudent(initialFromSession);
           }
 
-          // Fetch progress
-          const savedProgress = localStorage.getItem(`progress_${currentEmail}`);
-          if (savedProgress) {
-            setProgressData(JSON.parse(savedProgress));
+          // Fetch and sync latest progress/sessions from DB to localStorage
+          const { syncStudentData } = await import("@/utils/local-db");
+          await syncStudentData(currentEmail);
+
+          // Now load from (newly synced) localStorage
+          const latestProgress = localStorage.getItem(`progress_${currentEmail}`);
+          if (latestProgress) {
+            setProgressData(JSON.parse(latestProgress));
+          }
+          
+          const latestSessions = localStorage.getItem(`sessions_${currentEmail}`);
+          if (latestSessions) {
+            setUpcomingSessions(JSON.parse(latestSessions));
           }
         } catch (e) { console.error(e); }
       }
