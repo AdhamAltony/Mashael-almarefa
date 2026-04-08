@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const INITIAL_STATS = [
     { label: "إجمالي الحصص", value: "24", key: "total_sessions" },
@@ -22,6 +23,7 @@ const LATEST_NOTIFICATIONS = [
 ];
 
 export default function TeacherDashboardPage() {
+    const router = useRouter();
     const [classes, setClasses] = useState([]);
     const [stats, setStats] = useState(INITIAL_STATS);
     const [teacherName, setTeacherName] = useState("المعلم");
@@ -76,6 +78,7 @@ export default function TeacherDashboardPage() {
                 const dynamicClasses = myStudents.slice(0, 3).map((s, idx) => ({
                     id: s.id || idx,
                     student: s.name,
+                    email: s.email, // Added email for the redirect
                     course: s.course,
                     time: "10:00 صباحاً",
                     meetLink: "https://meet.google.com/new"
@@ -89,35 +92,8 @@ export default function TeacherDashboardPage() {
         fetchDashboardData();
     }, []);
 
-    const markAttendance = (id) => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        let email = "guest";
-        if (sessionCookie) {
-            try {
-                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                const decoded = decodeURIComponent(atob(base64));
-                email = JSON.parse(decoded).email;
-            } catch {}
-        }
-
-        const teacherDone = parseInt(localStorage.getItem(`teacher_done_${email}`) || "0");
-        localStorage.setItem(`teacher_done_${email}`, (teacherDone + 1).toString());
-
-        const adminSessions = parseInt(localStorage.getItem("admin_total_sessions") || "0");
-        localStorage.setItem("admin_total_sessions", (adminSessions + 1).toString());
-
-        setClasses(prev => prev.filter(c => c.id !== id));
-        
-        const Swal = require("sweetalert2");
-        Swal.fire({
-          title: "تم التسجيل!",
-          text: "تم تسجيل الحضور بنجاح! سيتم تحديث الإحصائيات.",
-          icon: "success",
-          confirmButtonText: "حسناً",
-          confirmButtonColor: "#10b981",
-          timer: 1500
-        });
+    const markAttendance = (studentEmail) => {
+        router.push(`/teacher/attendance?email=${encodeURIComponent(studentEmail)}`);
     };
 
     return (
@@ -170,7 +146,7 @@ export default function TeacherDashboardPage() {
                                         دخول لجوجل ميت
                                     </a>
                                     <button 
-                                        onClick={() => markAttendance(cls.id)}
+                                        onClick={() => markAttendance(cls.email)}
                                         className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors"
                                     >
                                         تسجيل حضور

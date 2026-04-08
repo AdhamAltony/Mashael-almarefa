@@ -13,6 +13,7 @@ function AttendanceContent() {
     const [students, setStudents] = useState([]);
     const [saved, setSaved] = useState(false);
     
+    const [teacherSession, setTeacherSession] = useState(null);
     const [formData, setFormData] = useState({
         studentEmail: initialEmail,
         date: new Date().toISOString().split('T')[0],
@@ -37,6 +38,7 @@ function AttendanceContent() {
                 const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
                 const decoded = decodeURIComponent(atob(base64));
                 const sessionData = JSON.parse(decoded);
+                setTeacherSession(sessionData);
                 
                 const { getLocalUsers } = require("@/utils/local-db");
                 const allUsers = await getLocalUsers();
@@ -56,8 +58,6 @@ function AttendanceContent() {
                 }
                 setDepartment(deptName);
                 
-                const teacherSubjects = freshTeacher.subjects || [];
-
                 // 2. Filter students specifically assigned to THIS teacher
                 const filtered = allUsers.filter(u => {
                     if (u.role !== "student") return false;
@@ -108,51 +108,48 @@ function AttendanceContent() {
 
         const { submitAttendance } = await import("@/utils/local-db");
 
-        // 1. Prepare data for database
+        // 1. Find student name for the report
+        const selectedStudent = students.find(s => s.email === formData.studentEmail);
+        const studentName = selectedStudent?.name || "طالب غير معروف";
+
+        // 2. Prepare data for database (ensure all fields expected by Admin are present)
         const dbAttendanceLog = {
             student_email: formData.studentEmail,
+            student_name: studentName, // Crucial for Admin history view
+            teacher_email: teacherSession?.email || "",
             date: formData.date,
             status: formData.status,
             duration: formData.duration,
             topic: formData.topic,
             rating: formData.rating,
             notes: formData.notes,
-            teacher_email: "" 
+            course_name: department // Include department info
         };
 
-        // 2. Save attendance log for the student locally
-        const logs = JSON.parse(localStorage.getItem(`attendance_${formData.studentEmail}`) || "[]");
-        logs.push(formData);
-        localStorage.setItem(`attendance_${formData.studentEmail}`, JSON.stringify(logs));
-        
-        // 3. Sync to Supabase
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        if (sessionCookie) {
-            try {
-                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                const decoded = decodeURIComponent(atob(base64));
-                const sessionData = JSON.parse(decoded);
-                const teacherEmail = sessionData.email;
-                
-                if (teacherEmail) {
-                    dbAttendanceLog.teacher_email = teacherEmail;
-                    
-                    const currentCount = parseInt(localStorage.getItem(`teacher_done_${teacherEmail}`) || "0");
-                    localStorage.setItem(`teacher_done_${teacherEmail}`, (currentCount + 1).toString());
-                    
-                    const teacherHistory = JSON.parse(localStorage.getItem(`teacher_history_${teacherEmail}`) || "[]");
-                    const studentName = students.find(s => s.email === formData.studentEmail)?.name || "طالب غير معروف";
-                    teacherHistory.push({ ...formData, studentName, timestamp: new Date().getTime() });
-                    localStorage.setItem(`teacher_history_${teacherEmail}`, JSON.stringify(teacherHistory));
+        // 3. Update localStorage fallback for teacher and admin (immediate feedback)
+        if (teacherSession?.email) {
+            const teacherEmail = teacherSession.email;
+            
+            // Teacher individual stats
+            const currentCount = parseInt(localStorage.getItem(`teacher_done_${teacherEmail}`) || "0");
+            localStorage.setItem(`teacher_done_${teacherEmail}`, (currentCount + 1).toString());
+            
+            // Teacher history for display in their own dashboard/students list
+            const teacherHistory = JSON.parse(localStorage.getItem(`teacher_history_${teacherEmail}`) || "[]");
+            teacherHistory.push({ ...formData, studentName, timestamp: new Date().getTime() });
+            localStorage.setItem(`teacher_history_${teacherEmail}`, JSON.stringify(teacherHistory));
 
-                    const adminTotal = parseInt(localStorage.getItem("admin_total_sessions") || "0");
-                    localStorage.setItem("admin_total_sessions", (adminTotal + 1).toString());
-                }
-            } catch (err) { console.error("Session sync error:", err); }
+            // Admin global stats
+            const adminTotal = parseInt(localStorage.getItem("admin_total_sessions") || "0");
+            localStorage.setItem("admin_total_sessions", (adminTotal + 1).toString());
+            
+            // Student history (Legacy backup)
+            const studentLogs = JSON.parse(localStorage.getItem(`attendance_${formData.studentEmail}`) || "[]");
+            studentLogs.push({ ...formData, teacher_email: teacherEmail });
+            localStorage.setItem(`attendance_${formData.studentEmail}`, JSON.stringify(studentLogs));
         }
 
-        // Trigger Sync
+        // 4. Sync to Supabase (This is what Admin report actually reads)
         await submitAttendance(dbAttendanceLog);
 
         setSaved(true);
