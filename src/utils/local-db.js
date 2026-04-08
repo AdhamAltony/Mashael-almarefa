@@ -407,3 +407,206 @@ export const syncStudentData = async (studentEmail) => {
         console.error("Sync failed:", err);
     }
 };
+
+/**
+ * Course & Platform Video Syncing
+ */
+
+export const getPlatformCourses = async () => {
+    const client = getSupabaseOrWarn("getPlatformCourses");
+    if (!client) return [];
+
+    try {
+        const { data, error } = await client
+            .from('courses')
+            .select('title')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        return (data || []).map(c => c.title);
+    } catch (err) {
+        console.error("Failed to fetch courses:", err);
+        return [];
+    }
+};
+
+export const addPlatformCourse = async (title) => {
+    const client = getSupabaseOrWarn("addPlatformCourse");
+    if (!client) return null;
+
+    try {
+        const { data, error } = await client
+            .from('courses')
+            .insert([{ title, category: 'عام' }])
+            .select();
+
+        if (error) throw error;
+        return data[0];
+    } catch (err) {
+        console.error("Failed to add course:", err);
+        return null;
+    }
+};
+
+export const updatePlatformCourse = async (oldTitle, newTitle) => {
+    const client = getSupabaseOrWarn("updatePlatformCourse");
+    if (!client) return false;
+
+    try {
+        // 1. Update the course name
+        const { error: courseError } = await client
+            .from('courses')
+            .update({ title: newTitle })
+            .eq('title', oldTitle);
+
+        if (courseError) throw courseError;
+
+        // 2. Update all videos belonging to this course
+        await client
+            .from('course_videos')
+            .update({ course_title: newTitle })
+            .eq('course_title', oldTitle);
+
+        // 3. Update all student assignments
+        await client
+            .from('course_assignments')
+            .update({ course_title: newTitle })
+            .eq('course_title', oldTitle);
+
+        return true;
+    } catch (err) {
+        console.error("Failed to update course:", err);
+        return false;
+    }
+};
+
+export const deletePlatformCourse = async (title) => {
+    const client = getSupabaseOrWarn("deletePlatformCourse");
+    if (!client) return false;
+
+    try {
+        // 1. Delete assignments
+        await client.from('course_assignments').delete().eq('course_title', title);
+        
+        // 2. Delete videos
+        await client.from('course_videos').delete().eq('course_title', title);
+        
+        // 3. Delete course
+        const { error } = await client.from('courses').delete().eq('title', title);
+
+        if (error) throw error;
+        return true;
+    } catch (err) {
+        console.error("Failed to delete course:", err);
+        return false;
+    }
+};
+
+export const getPlatformVideos = async () => {
+    const client = getSupabaseOrWarn("getPlatformVideos");
+    if (!client) return [];
+
+    try {
+        const { data, error } = await client
+            .from('course_videos')
+            .select('*')
+            .order('upload_date', { ascending: false });
+
+        if (error) throw error;
+        
+        // Map to the format expected by the UI
+        return (data || []).map(v => ({
+            id: v.id,
+            title: v.course_title,
+            videoUrl: v.video_url,
+            thumbnailUrl: v.thumbnail_url,
+            notes: v.notes,
+            date: v.upload_date ? new Date(v.upload_date).toISOString().split('T')[0] : ""
+        }));
+    } catch (err) {
+        console.error("Failed to fetch videos:", err);
+        return [];
+    }
+};
+
+export const addPlatformVideo = async (videoData) => {
+    const client = getSupabaseOrWarn("addPlatformVideo");
+    if (!client) return null;
+
+    try {
+        const { data, error } = await client
+            .from('course_videos')
+            .insert([{
+                course_title: videoData.title,
+                video_url: videoData.videoUrl,
+                thumbnail_url: videoData.thumbnailUrl,
+                notes: videoData.notes,
+                upload_date: videoData.date || new Date().toISOString()
+            }])
+            .select();
+
+        if (error) throw error;
+        return data[0];
+    } catch (err) {
+        console.error("Failed to add video:", err);
+        return null;
+    }
+};
+
+export const deletePlatformVideo = async (id) => {
+    const client = getSupabaseOrWarn("deletePlatformVideo");
+    if (!client) return false;
+
+    try {
+        const { error } = await client.from('course_videos').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+    } catch (err) {
+        console.error("Failed to delete video:", err);
+        return false;
+    }
+};
+
+export const getAssignedCourseTitles = async (studentEmail) => {
+    const client = getSupabaseOrWarn("getAssignedCourseTitles");
+    if (!client) return [];
+
+    try {
+        const { data, error } = await client
+            .from('course_assignments')
+            .select('course_title')
+            .eq('student_email', studentEmail);
+
+        if (error) throw error;
+        return (data || []).map(a => a.course_title);
+    } catch (err) {
+        console.error("Failed to fetch assigned courses:", err);
+        return [];
+    }
+};
+
+export const saveCourseAssignments = async (studentEmail, courseTitles) => {
+    const client = getSupabaseOrWarn("saveCourseAssignments");
+    if (!client) return false;
+
+    try {
+        // 1. Delete existing assignments for this student
+        await client.from('course_assignments').delete().eq('student_email', studentEmail);
+
+        // 2. Insert new assignments
+        if (courseTitles && courseTitles.length > 0) {
+            const inserts = courseTitles.map(title => ({
+                student_email: studentEmail,
+                course_title: title,
+                assigned_at: new Date().toISOString()
+            }));
+            const { error } = await client.from('course_assignments').insert(inserts);
+            if (error) throw error;
+        }
+
+        return true;
+    } catch (err) {
+        console.error("Failed to save course assignments:", err);
+        return false;
+    }
+};

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import AdminNavbar from "../admin/admin-navbar";
 import Swal from "sweetalert2";
+import { getPlatformCourses, getPlatformVideos, addPlatformVideo, addPlatformCourse } from "@/utils/local-db";
 
 export default function CoursesCenterPage() {
     const [courses, setCourses] = useState([]);
@@ -26,10 +27,13 @@ export default function CoursesCenterPage() {
     ];
 
     useEffect(() => {
-        const savedCourses = JSON.parse(localStorage.getItem("platform_courses") || "[]");
-        setCourses(savedCourses);
-        const savedVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
-        setVideos(savedVideos);
+        const loadData = async () => {
+            const savedCourses = await getPlatformCourses();
+            setCourses(savedCourses);
+            const savedVideos = await getPlatformVideos();
+            setVideos(savedVideos);
+        };
+        loadData();
     }, []);
 
     const handleUpload = async (e) => {
@@ -97,8 +101,7 @@ export default function CoursesCenterPage() {
                 setUploadProgress(100);
             }
 
-            const newVideo = {
-                id: Date.now(),
+            const newVideoData = {
                 title: formData.title,
                 videoUrl: videoUrl,
                 thumbnailUrl: thumbResult.url,
@@ -106,14 +109,17 @@ export default function CoursesCenterPage() {
                 date: formData.date
             };
 
-            const updatedVideos = [newVideo, ...videos];
-            setVideos(updatedVideos);
-            localStorage.setItem("platform_videos", JSON.stringify(updatedVideos));
-
-            if (!courses.includes(formData.title)) {
-                const updatedCourses = [...courses, formData.title];
-                setCourses(updatedCourses);
-                localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+            const result = await addPlatformVideo(newVideoData);
+            
+            if (result) {
+                const refreshedVideos = await getPlatformVideos();
+                setVideos(refreshedVideos);
+                
+                if (!courses.includes(formData.title)) {
+                    await addPlatformCourse(formData.title);
+                    const refreshedCourses = await getPlatformCourses();
+                    setCourses(refreshedCourses);
+                }
             }
 
             Swal.fire("تم بنجاح", formData.videoFile ? "تم رفع الفيديو والملاحظات بنجاح" : "تم حفظ بيانات الدورة والصورة المصغرة بنجاح", "success");

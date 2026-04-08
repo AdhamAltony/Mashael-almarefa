@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Swal from "sweetalert2";
 import CourseVideoPlayer from "@/components/CourseVideoPlayer";
+import { getPlatformVideos, getAssignedCourseTitles } from "@/utils/local-db";
 
 export default function StudentCoursesPage() {
     const [user, setUser] = useState(null);
@@ -13,39 +14,42 @@ export default function StudentCoursesPage() {
     const [videoError, setVideoError] = useState(false);
 
     useEffect(() => {
-        const cookies = document.cookie.split("; ");
-        const sessionCookie = cookies.find(c => c.startsWith("session="));
-        let currentUserEmail = "";
-        
-        if (sessionCookie) {
-            try {
-                const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
-                const decoded = decodeURIComponent(atob(base64));
-                const userData = JSON.parse(decoded);
-                setUser(userData);
-                currentUserEmail = userData.email;
-            } catch {
-                console.error("Error parsing session");
+        const loadData = async () => {
+            const cookies = document.cookie.split("; ");
+            const sessionCookie = cookies.find(c => c.startsWith("session="));
+            let currentUserEmail = "";
+            
+            if (sessionCookie) {
+                try {
+                    const base64 = decodeURIComponent(sessionCookie.split("=")[1]);
+                    const decoded = decodeURIComponent(atob(base64));
+                    const userData = JSON.parse(decoded);
+                    setUser(userData);
+                    currentUserEmail = userData.email;
+                } catch {
+                    console.error("Error parsing session");
+                }
             }
-        }
 
-        const allPlatformVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
-        const userAssignedCourseTitles = JSON.parse(localStorage.getItem(`assigned_courses_${currentUserEmail}`) || "[]");
+            const allPlatformVideos = await getPlatformVideos();
+            const userAssignedCourseTitles = await getAssignedCourseTitles(currentUserEmail);
 
-        const formattedVideos = allPlatformVideos.map(video => ({
-            id: video.id,
-            title: video.title,
-            description: video.notes || "لا يوجد وصف لهذه الدورة حالياً.",
-            videoUrl: video.videoUrl,
-            hasVideo: video.videoUrl && video.videoUrl !== "#",
-            thumbnailUrl: video.thumbnailUrl,
-            date: video.date,
-            icon: '📚',
-            isAssigned: userAssignedCourseTitles.includes(video.title)
-        }));
+            const formattedVideos = allPlatformVideos.map(video => ({
+                id: video.id,
+                title: video.title,
+                description: video.notes || "لا يوجد وصف لهذه الدورة حالياً.",
+                videoUrl: video.videoUrl,
+                hasVideo: video.videoUrl && video.videoUrl !== "#",
+                thumbnailUrl: video.thumbnailUrl,
+                date: video.date,
+                icon: '📚',
+                isAssigned: userAssignedCourseTitles.includes(video.title)
+            }));
 
-        setAssignedCourses(formattedVideos);
-        setLoading(false);
+            setAssignedCourses(formattedVideos);
+            setLoading(false);
+        };
+        loadData();
     }, []);
 
     const handleVideoClick = (course) => {

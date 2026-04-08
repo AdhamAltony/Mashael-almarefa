@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getLocalUsers, deleteUser, updateUser } from "@/utils/local-db";
+import { getLocalUsers, deleteUser, updateUser, getPlatformCourses, updatePlatformCourse, deletePlatformCourse, addPlatformCourse, getAssignedCourseTitles, saveCourseAssignments, getPlatformVideos } from "@/utils/local-db";
 
 // Mock data
 // Dynamic courses will be loaded from localStorage
 export default function AdminUsersPage() {
     const [allCourses, setAllCourses] = useState([]);
     const [users, setUsers] = useState([]);
+    const [videoCounts, setVideoCounts] = useState({});
+    const [assignedCourseCounts, setAssignedCourseCounts] = useState({});
     const [activeTab, setActiveTab] = useState("student");
 
     // Edit State
@@ -32,23 +34,41 @@ export default function AdminUsersPage() {
     const [newCourseName, setNewCourseName] = useState("");
 
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchInitialData = async () => {
             try {
                 setLoading(true);
                 const data = await getLocalUsers();
                 setUsers(data || []);
+                
+                // Load real courses from Supabase
+                const savedCourses = await getPlatformCourses();
+                setAllCourses(savedCourses);
+
+                // Load all videos to count them
+                const allVideos = await getPlatformVideos();
+                const counts = {};
+                allVideos.forEach(v => {
+                    counts[v.title] = (counts[v.title] || 0) + 1;
+                });
+                setVideoCounts(counts);
+
+                // Load assignment counts for each user
+                const assignmentCounts = {};
+                for (const user of data) {
+                    if (user.role === 'student') {
+                        const assigned = await getAssignedCourseTitles(user.email);
+                        assignmentCounts[user.email] = assigned.length;
+                    }
+                }
+                setAssignedCourseCounts(assignmentCounts);
+
             } catch (err) {
-                console.error("Failed to fetch users:", err);
+                console.error("Failed to fetch data:", err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchUsers();
-        
-        // Load real courses from Courses Center
-        const savedCourses = JSON.parse(localStorage.getItem("platform_courses") || "[]");
-        setAllCourses(savedCourses);
-        
+        fetchInitialData();
         setMounted(true);
     }, []);
 
@@ -121,15 +141,22 @@ export default function AdminUsersPage() {
         setToast({ message: `تم تغيير حالة ${user.name} إلى ${newStatus}`, type: "success" });
         setTimeout(() => setToast(null), 3000);
     };
-    const openAssignModal = (user) => {
+    const openAssignModal = async (user) => {
         setAssigningToUser(user);
-        const stored = localStorage.getItem(`assigned_courses_${user.email}`);
-        setSelectedCourses(stored ? JSON.parse(stored) : []);
+        const assigned = await getAssignedCourseTitles(user.email);
+        setSelectedCourses(assigned || []);
     };
 
-    const handleSaveAssignments = () => {
+    const handleSaveAssignments = async () => {
         if (assigningToUser) {
-            localStorage.setItem(`assigned_courses_${assigningToUser.email}`, JSON.stringify(selectedCourses));
+            await saveCourseAssignments(assigningToUser.email, selectedCourses);
+            
+            // Update local count
+            setAssignedCourseCounts(prev => ({
+                ...prev,
+                [assigningToUser.email]: selectedCourses.length
+            }));
+
             setAssigningToUser(null);
             setToast({ message: "تم حفظ الصلاحيات بنجاح!", type: "success" });
             setTimeout(() => setToast(null), 3000);
@@ -148,38 +175,36 @@ export default function AdminUsersPage() {
         setEditCourseForm(course);
     };
 
-    const handleSaveCourseEdit = (e) => {
+    const handleSaveCourseEdit = async (e) => {
         e.preventDefault();
-        const updatedCourses = allCourses.map(c => c === editingCourse ? editCourseForm : c);
-        setAllCourses(updatedCourses);
-        localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+        const success = await updatePlatformCourse(editingCourse, editCourseForm);
         
-        // Also update videos if needed (optional based on user request, but good for consistency)
-        const savedVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
-        const updatedVideos = savedVideos.map(v => v.title === editingCourse ? { ...v, title: editCourseForm } : v);
-        localStorage.setItem("platform_videos", JSON.stringify(updatedVideos));
-
-        setEditingCourse(null);
-        setToast({ message: "تم تحديث اسم الدورة بنجاح", type: "success" });
-        setTimeout(() => setToast(null), 3000);
+        if (success) {
+            const updatedCourses = await getPlatformCourses();
+            setAllCourses(updatedCourses);
+            setEditingCourse(null);
+            setToast({ message: "تم تحديث اسم الدورة بنجاح", type: "success" });
+            setTimeout(() => setToast(null), 3000);
+        } else {
+            setToast({ message: "فشل تحديث اسم الدورة", type: "error" });
+        }
     };
 
-    const confirmDeleteCourse = () => {
-        const updatedCourses = allCourses.filter(c => c !== courseToDelete);
-        setAllCourses(updatedCourses);
-        localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+    const confirmDeleteCourse = async () => {
+        const success = await deletePlatformCourse(courseToDelete);
         
-        // Also remove associated videos if desired? The user said "احذفها خالص"
-        const savedVideos = JSON.parse(localStorage.getItem("platform_videos") || "[]");
-        const updatedVideos = savedVideos.filter(v => v.title !== courseToDelete);
-        localStorage.setItem("platform_videos", JSON.stringify(updatedVideos));
-
-        setCourseToDelete(null);
-        setToast({ message: "تم حذف الدورة بنجاح", type: "success" });
-        setTimeout(() => setToast(null), 3000);
+        if (success) {
+            const updatedCourses = await getPlatformCourses();
+            setAllCourses(updatedCourses);
+            setCourseToDelete(null);
+            setToast({ message: "تم حذف الدورة بنجاح", type: "success" });
+            setTimeout(() => setToast(null), 3000);
+        } else {
+            setToast({ message: "فشل حذف الدورة", type: "error" });
+        }
     };
 
-    const handleAddCourse = (e) => {
+    const handleAddCourse = async (e) => {
         e.preventDefault();
         if (!newCourseName.trim()) return;
         
@@ -189,14 +214,18 @@ export default function AdminUsersPage() {
             return;
         }
 
-        const updatedCourses = [...allCourses, newCourseName];
-        setAllCourses(updatedCourses);
-        localStorage.setItem("platform_courses", JSON.stringify(updatedCourses));
+        const result = await addPlatformCourse(newCourseName);
         
-        setNewCourseName("");
-        setIsAddingCourse(false);
-        setToast({ message: "تم إضافة الدورة بنجاح", type: "success" });
-        setTimeout(() => setToast(null), 3000);
+        if (result) {
+            const updatedCourses = await getPlatformCourses();
+            setAllCourses(updatedCourses);
+            setNewCourseName("");
+            setIsAddingCourse(false);
+            setToast({ message: "تم إضافة الدورة بنجاح", type: "success" });
+            setTimeout(() => setToast(null), 3000);
+        } else {
+            setToast({ message: "فشل إضافة الدورة", type: "error" });
+        }
     };
 
     return (
@@ -271,7 +300,7 @@ export default function AdminUsersPage() {
                             <tbody className="divide-y divide-emerald-50/50">
                                 {allCourses.length > 0 ? (
                                     allCourses.map((course, index) => {
-                                        const videoCount = JSON.parse(localStorage.getItem("platform_videos") || "[]").filter(v => v.title === course).length;
+                                        const videoCount = videoCounts[course] || 0;
                                         return (
                                             <tr key={index} className="group transition-colors hover:bg-emerald-50/30">
                                                 <td className="py-4 pl-4 font-bold text-emerald-950">{course}</td>
@@ -380,7 +409,7 @@ export default function AdminUsersPage() {
                                                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                                             </svg>
-                                                            {mounted && localStorage.getItem(`assigned_courses_${user.email}`) ? "تعديل الدورات" : "إتاحة دورات"}
+                                                            {mounted && assignedCourseCounts[user.email] > 0 ? "تعديل الدورات" : "إتاحة دورات"}
                                                         </button>
                                                     </td>
                                                 ) : (
