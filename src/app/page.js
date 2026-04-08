@@ -180,7 +180,7 @@ function AnnouncementsSection() {
       <div className="site-container flex flex-wrap items-center justify-center gap-2 text-white sm:gap-3">
         <SparkIcon className="h-5 w-5 animate-pulse text-yellow-300" />
         <p className="text-sm font-bold leading-relaxed sm:text-base">
-          إعلانات الدورات: بادر بالتسجيل الآن في <span className="text-yellow-300">دوراتنا الجديدة</span> (التطبيق اللغوي، دورة البحث العلمي ومناهجه، والكتابة الأكاديمية).
+          إعلانات الدورات: بادر بالتسجيل الآن في <span className="text-yellow-300">دوراتنا الجديدة</span> (التدقيق اللغوي، دورة البحث العلمي ومناهجه، والكتابة الأكاديمية).
         </p>
         <SparkIcon className="hidden h-5 w-5 animate-pulse text-yellow-300 sm:block" />
       </div>

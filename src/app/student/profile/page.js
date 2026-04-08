@@ -101,10 +101,10 @@ export default function StudentProfilePage() {
             course: dbUser?.course || data.course || "بوابة الطالب",
             department: deptNamesStr,
             selectedDepartments: selectedDepts,
-            subjects: dbUser?.registered_subjects || data.subjects || [],
+            subjects: dbUser?.subjects || data.subjects || [],
             student_code: dbUser?.student_code || data.id || `STD-${Math.floor(10000 + Math.random() * 90000)}`,
             level: dbUser?.level || (deptNamesStr
-              ? `${deptNamesStr}${(dbUser?.registered_subjects || data.subjects)?.length > 0 ? ` - (${(dbUser?.registered_subjects || data.subjects).join("، ")})` : ""}`
+              ? `${deptNamesStr}${(dbUser?.subjects || data.subjects)?.length > 0 ? ` - (${(dbUser?.subjects || data.subjects).join("، ")})` : ""}`
               : "بانتظار تحديد المستوى"),
             email: currentEmail,
             guardian: dbUser?.guardian || data.guardian || "غير محدد",
@@ -154,9 +154,15 @@ export default function StudentProfilePage() {
                   }
                 }
 
+                // Sanitize subjects to ensure it's always an array
+                const subjects = Array.isArray(parsedLocal.subjects) 
+                  ? parsedLocal.subjects 
+                  : (initialFromSession.subjects || []);
+
                 setStudent({
                   ...initialFromSession,
                   ...parsedLocal,
+                  subjects, // Ensure subjects is an array
                   image: parsedLocal.image || initialFromSession.image || "", // Prefer local, fall back to DB/Session
                   assignedTeacherImage: mainTeacherImage,
                   teacherImages: teacherImages,
@@ -210,8 +216,9 @@ export default function StudentProfilePage() {
       const deptNamesStr = deptNames.join("، ");
 
       // Keep subjects only if curricula is still selected
+      const currentSubjects = Array.isArray(prev.subjects) ? prev.subjects : [];
       const hasCurricula = updated.includes("curricula");
-      const updatedSubjects = hasCurricula ? (prev.subjects || []) : [];
+      const updatedSubjects = hasCurricula ? currentSubjects : [];
       const newLevel = `${deptNamesStr}${updatedSubjects.length > 0 ? ` - (${updatedSubjects.join("، ")})` : ""}`;
 
       return {
@@ -282,7 +289,8 @@ export default function StudentProfilePage() {
     // Recalculate level for display and DB
     const deptNames = student.selectedDepartments.map(id => DEPARTMENTS.find(d => d.id === id)?.name).filter(Boolean);
     const deptNamesStr = deptNames.join("، ");
-    const levelStr = `${deptNamesStr}${student.subjects?.length > 0 ? ` - (${student.subjects.join("، ")})` : ""}`;
+    const currentSubjects = Array.isArray(student.subjects) ? student.subjects : [];
+    const levelStr = `${deptNamesStr}${currentSubjects.length > 0 ? ` - (${currentSubjects.join("، ")})` : ""}`;
 
     const finalStudent = {
       ...student,
@@ -491,11 +499,12 @@ export default function StudentProfilePage() {
                         <label key={sub.id} className="flex items-center gap-2 rounded-xl border border-emerald-50 bg-white/40 p-3 transition-all hover:bg-white/80 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={student.subjects?.includes(sub.name)}
+                            checked={Array.isArray(student.subjects) && student.subjects.includes(sub.name)}
                             onChange={(e) => {
+                              const currentSubjects = Array.isArray(student.subjects) ? student.subjects : [];
                               const updated = e.target.checked
-                                ? [...(student.subjects || []), sub.name]
-                                : (student.subjects || []).filter(s => s !== sub.name);
+                                ? [...currentSubjects, sub.name]
+                                : currentSubjects.filter(s => s !== sub.name);
                               const newLevel = `${student.department}${updated.length > 0 ? ` - (${updated.join("، ")})` : ""}`;
                               setStudent(prev => ({ ...prev, subjects: updated, level: newLevel }));
                             }}
@@ -557,7 +566,7 @@ export default function StudentProfilePage() {
                   {student.department?.includes("المناهج الدراسية") && (
                     <div className="flex flex-col gap-1">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">المواد الدراسية</span>
-                      <span className="text-sm font-bold text-emerald-700">{student.subjects?.length > 0 ? student.subjects.join("، ") : "لم يتم اختيار مواد بعد"}</span>
+                      <span className="text-sm font-bold text-emerald-700">{Array.isArray(student.subjects) && student.subjects.length > 0 ? student.subjects.join("، ") : "لم يتم اختيار مواد بعد"}</span>
                     </div>
                   )}
                 </div>
