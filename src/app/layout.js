@@ -27,6 +27,8 @@ export const metadata = {
     title: "مشاعل المعرفة",
   },
   icons: {
+    icon: "/Logo.jpeg",
+    shortcut: "/icon-192x192.png",
     apple: "/icon-192x192.png",
   },
 };
