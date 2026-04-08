@@ -47,7 +47,7 @@ export default function Footer() {
                             </a>
 
                             {/* Social Icons Bar */}
-                            <div className="flex gap-4 pt-2 md:justify-end">
+                            <div className="flex flex-wrap gap-4 pt-2 md:justify-end justify-center">
                                 <a
                                     href="https://www.facebook.com/share/1GxJjPhQcE/"
                                     target="_blank"
@@ -57,6 +57,39 @@ export default function Footer() {
                                 >
                                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 512 512">
                                         <path d="M504 256C504 119 395 8 256 8S8 119 8 256c0 123.78 90.69 226.38 209.25 245V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.28c-30.8 0-40.42 19.12-40.42 38.73V256h68.78l-11 71.69h-57.78V501.69C413.31 482.38 504 379.78 504 256z" />
+                                    </svg>
+                                </a>
+                                <a
+                                    href="https://x.com/mashaeil2026"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 text-white ring-1 ring-white/10 hover:bg-black hover:ring-white/50 hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/20"
+                                    title="إكس (تويتر سابقاً)"
+                                >
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 512 512">
+                                        <path d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z" />
+                                    </svg>
+                                </a>
+                                <a
+                                    href="https://www.youtube.com/@mashaeilalmaerifa"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 text-white ring-1 ring-white/10 hover:bg-[#FF0000] hover:ring-[#FF0000]/50 hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/20"
+                                    title="يوتيوب"
+                                >
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 576 512">
+                                        <path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 5.15 48.284 48.597 42.591 11.486 213.371 11.486 213.371 11.486s170.781 0 213.371-11.486c23.497-6.322 42.003-24.947 48.284-48.597 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z" />
+                                    </svg>
+                                </a>
+                                <a
+                                    href="https://t.me/mashaeilalmaerifa"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-12 w-12 flex items-center justify-center rounded-2xl bg-white/5 text-white ring-1 ring-white/10 hover:bg-[#26A5E4] hover:ring-[#26A5E4]/50 hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/20"
+                                    title="تليجرام"
+                                >
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 496 512">
+                                        <path d="M248 8C111 8 0 119 0 256s111 248 248 248 248-111 248-248S385 8 248 8zm121.8 169.9l-40.7 191.8c-3 13.6-11.1 16.9-22.4 10.5l-62-45.7-29.9 28.8c-3.3 3.3-6.1 6.1-12.5 6.1l4.4-63.1 114.9-103.8c5-4.4-1.1-6.9-7.7-2.5l-142 89.4-61.2-19.1c-13.3-4.2-13.6-13.3 2.8-19.7l239.1-92.2c11.1-4 20.8 2.7 17.2 19.5z" />
                                     </svg>
                                 </a>
                                 <a
