@@ -5,7 +5,7 @@ import { supabase } from './supabase-client';
  */
 let cachedUsers = null;
 
-const getSupabaseOrWarn = (operation) => {
+export const getSupabaseOrWarn = (operation) => {
     if (supabase) return supabase;
 
     console.warn(`Skipping ${operation}: Supabase environment variables are not configured.`);
@@ -159,7 +159,7 @@ export const saveUser = async (user) => {
                 rating: 5.0,
                 rate_per_session: 0
             }]);
-            
+
             if (profileError) {
                 console.error("Failed to insert into teachers_profile:", profileError);
             }
@@ -173,7 +173,7 @@ export const saveUser = async (user) => {
                 registered_subjects: user.subjects || [],
                 country: user.country || ""
             }]);
-            
+
             if (studentProfileError) {
                 console.error("Failed to insert into students_profile:", studentProfileError);
             }
@@ -195,7 +195,7 @@ export const deleteUser = async (id, email) => {
         // This ensures the main delete doesn't fail if CASCADE is not set.
         await client.from('students_profile').delete().eq('user_id', id);
         await client.from('teachers_profile').delete().eq('user_id', id);
-        
+
         // 2. Delete from the parent users table
         const { error } = await client
             .from('users')
@@ -222,7 +222,7 @@ export const deleteUser = async (id, email) => {
                 `sessions_schedule_${email}`,
                 `teacher_sessions_${email}`
             ];
-            
+
             keysToRemove.forEach(key => localStorage.removeItem(key));
 
             // Clean up any other potential session-based localStorage items containing the email
@@ -292,20 +292,35 @@ export const updateUser = async (updatedUser) => {
 
 export const submitAttendance = async (logData) => {
     const client = getSupabaseOrWarn("submitAttendance");
-    if (!client) return;
-
     try {
-        const { error } = await client.from('attendance_logs').insert([logData]);
-        if (error) throw error;
-        
-        // Also update local cache for immediate feedback
-        if (typeof window !== 'undefined') {
+        // Sanitize data types and map to 'attendance_sessions' table schema found in migration.sql
+        const cleanDuration = typeof logData.duration === 'string' ? parseInt(logData.duration.match(/\d+/)?.[0] || "0") : logData.duration;
+
+        const sessionData = {
+            teacher_email: logData.teacher_email,
+            student_name: logData.student_name || logData.studentName || logData.student_email?.split('@')[0],
+            course_name: logData.course_name,
+            session_date: logData.date,
+            session_time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+            duration: cleanDuration || 0,
+            notes: `الموضوع: ${logData.topic || "—"} | التقييم: ${logData.rating || "—"} | الحالة: ${logData.status || "—"} | التفاصيل: ${logData.notes || "لا توجد"}`
+        };
+
+        const { error } = await client.from('attendance_sessions').insert([sessionData]);
+
+        if (error) {
+            console.error("Supabase Error Object:", JSON.stringify(error, null, 2));
+            throw error;
+        }
+
+        // Update local cache
+        if (typeof window !== 'undefined' && logData.student_email) {
             const logs = JSON.parse(localStorage.getItem(`attendance_${logData.student_email}`) || "[]");
-            logs.push(logData);
+            logs.push({ ...logData, synced: true });
             localStorage.setItem(`attendance_${logData.student_email}`, JSON.stringify(logs));
         }
     } catch (err) {
-        console.error("Failed to sync attendance to database:", err);
+        console.error("Failed to sync attendance to database:", err.message || err);
     }
 };
 
@@ -315,21 +330,21 @@ export const getAttendanceHistory = async (studentEmail) => {
 
     try {
         const { data, error } = await client
-            .from('attendance_logs')
+            .from('attendance_sessions')
             .select('*')
-            .eq('student_email', studentEmail)
-            .order('date', { ascending: false });
+            .order('session_date', { ascending: false });
 
         if (error) throw error;
-        
-        // Sync to local for future offline use
-        if (typeof window !== 'undefined' && data) {
-            localStorage.setItem(`attendance_${studentEmail}`, JSON.stringify(data));
-        }
 
-        return data || [];
+        // Map back to expected format for UI (CamelCase studentName or snake_case student_name)
+        return (data || []).map(s => ({
+            ...s,
+            date: s.session_date,
+            studentName: s.student_name,
+            student_name: s.student_name
+        }));
     } catch (err) {
-        console.error("Failed to fetch attendance history:", err);
+        console.error("Failed to fetch attendance history:", err.message || err);
         return [];
     }
 };
@@ -388,21 +403,60 @@ export const syncStudentData = async (studentEmail) => {
         if (error || !data) return;
 
         const profile = data.students_profile?.[0] || data.students_profile || {};
-        
+
+        // 1. Fetch active teachers to validate subscriptions
+        const allUsers = await getLocalUsers(true); // Force refresh to get latest
+        const activeTeacherEmails = new Set(
+            allUsers.filter(u => u.role === 'teacher').map(t => t.email.toLowerCase())
+        );
+
+        // 2. Validate and Sync Subscriptions
+        let regSubjects = profile.registered_subjects || {};
+        let subs = regSubjects.subs || {};
+        let hasChanges = false;
+        let sanitizedSubs = {};
+
+        for (const [email, sub] of Object.entries(subs)) {
+            if (activeTeacherEmails.has(email.toLowerCase())) {
+                sanitizedSubs[email] = sub;
+            } else {
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges) {
+            regSubjects.subs = sanitizedSubs;
+            // Update DB if we removed deleted teachers
+            await client
+                .from('students_profile')
+                .update({ registered_subjects: regSubjects })
+                .eq('user_id', data.id);
+        }
+
+        // 3. Sync to LocalStorage
+        // Update main profile object
+        const localProfileKey = `student_profile_${studentEmail}`;
+        const localProfile = JSON.parse(localStorage.getItem(localProfileKey) || "{}");
+        localStorage.setItem(localProfileKey, JSON.stringify({
+            ...localProfile,
+            ...mapUserFromSupabase(data),
+            subscriptions: sanitizedSubs
+        }));
+
         // Sync Progress
         if (profile.progress_data) {
             localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(profile.progress_data));
-        } else if (profile.registered_subjects?.progress) {
-            localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(profile.registered_subjects.progress));
+        } else if (regSubjects.progress) {
+            localStorage.setItem(`progress_${studentEmail}`, JSON.stringify(regSubjects.progress));
         }
 
         // Sync Sessions
         if (profile.upcoming_sessions) {
             localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(profile.upcoming_sessions));
-        } else if (profile.registered_subjects?.sessions) {
-            localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(profile.registered_subjects.sessions));
+        } else if (regSubjects.sessions) {
+            localStorage.setItem(`sessions_${studentEmail}`, JSON.stringify(regSubjects.sessions));
         }
-        
+
     } catch (err) {
         console.error("Sync failed:", err);
     }
@@ -487,10 +541,10 @@ export const deletePlatformCourse = async (title) => {
     try {
         // 1. Delete assignments
         await client.from('course_assignments').delete().eq('course_title', title);
-        
+
         // 2. Delete videos
         await client.from('course_videos').delete().eq('course_title', title);
-        
+
         // 3. Delete course
         const { error } = await client.from('courses').delete().eq('title', title);
 
@@ -513,7 +567,7 @@ export const getPlatformVideos = async () => {
             .order('upload_date', { ascending: false });
 
         if (error) throw error;
-        
+
         // Map to the format expected by the UI
         return (data || []).map(v => ({
             id: v.id,

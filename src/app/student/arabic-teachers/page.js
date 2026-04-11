@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import TeacherBio from "@/components/teacher-bio";
-import { getLocalUsers } from "@/utils/local-db";
+import { getLocalUsers, syncStudentData } from "@/utils/local-db";
 
 export default function ArabicTeachersPage() {
     const [course, setCourse] = useState("العربية لغير الناطقين");
@@ -47,11 +47,8 @@ export default function ArabicTeachersPage() {
                     setIsLoggedIn(true);
                     if (data.course) setCourse(data.course);
 
-                    const studentProf = localStorage.getItem(`student_profile_${data.email}`);
-                    if (studentProf) {
-                        const parsed = JSON.parse(studentProf);
-                        // Multi-subscription support
-                    }
+                    // Sync student data to sanitize subscriptions
+                    await syncStudentData(data.email);
                 } catch { }
             }
         };

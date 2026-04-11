@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import TeacherBio from "@/components/teacher-bio";
-import { getLocalUsers } from "@/utils/local-db";
+import { getLocalUsers, syncStudentData } from "@/utils/local-db";
 
 
 
@@ -49,11 +49,8 @@ export default function QuranTeachersPage() {
                     setIsLoggedIn(true);
                     if (data.course) setCourse(data.course);
 
-                    const studentProf = localStorage.getItem(`student_profile_${data.email}`);
-                    if (studentProf) {
-                        const parsed = JSON.parse(studentProf);
-                        // No longer a single string, but check if we need a place-holder or leave for display logic
-                    }
+                    // Sync student data to sanitize subscriptions
+                    await syncStudentData(data.email);
                 } catch { }
             }
         };

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import TeacherBio from "@/components/teacher-bio";
-import { getLocalUsers } from "@/utils/local-db";
+import { getLocalUsers, syncStudentData } from "@/utils/local-db";
 
 const SUBJECTS = [
     { id: "arabic", name: "اللغة العربية", icon: "📚" },
@@ -70,6 +70,9 @@ export default function CurriculaTeachersPage() {
                         setStudent(sessionData);
                         if (sessionData.course) setCourse(sessionData.course);
                     }
+
+                    // Sync student data to sanitize subscriptions
+                    await syncStudentData(sessionData.email);
 
                     const studentProf = localStorage.getItem(`student_profile_${sessionData.email}`);
                     if (studentProf) {

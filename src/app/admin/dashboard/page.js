@@ -19,12 +19,25 @@ export default function AdminDashboardPage() {
       
       const totalStudents = allUsers.filter(u => u.role === "student").length;
       const totalTeachers = allUsers.filter(u => u.role === "teacher").length;
-      const savedSessions = localStorage.getItem("admin_total_sessions") || "0";
+
+      // Fetch real counts from database instead of localStorage
+      const { getSupabaseOrWarn } = await import("@/utils/local-db");
+      const client = getSupabaseOrWarn("DashboardFetchStats");
+      let totalSessions = 0;
+      
+      if (client) {
+          const { count } = await client
+              .from('attendance_sessions')
+              .select('*', { count: 'exact', head: true });
+          totalSessions = count || 0;
+      } else {
+          totalSessions = parseInt(localStorage.getItem("admin_total_sessions") || "0");
+      }
 
       setStats([
         { label: "إجمالي الطلاب", value: totalStudents.toString(), delta: "تحديث تلقائي", key: "total_students" },
         { label: "المعلمون النشطون", value: totalTeachers.toString(), delta: "تحديث تلقائي", key: "active_teachers" },
-        { label: "الحصص المكتملة", value: savedSessions, delta: "تحديث تلقائي", key: "admin_total_sessions" },
+        { label: "الحصص المكتملة", value: totalSessions.toString(), delta: "مزامنة مباشرة", key: "admin_total_sessions" },
       ]);
     };
     
