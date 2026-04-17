@@ -302,7 +302,7 @@ export const submitAttendance = async (logData) => {
             student_name: logData.student_name || logData.studentName || logData.student_email?.split('@')[0],
             course_name: logData.course_name,
             session_date: logData.date,
-            session_time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+            session_time: new Date().toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             duration: cleanDuration || 0,
             notes: `الموضوع: ${logData.topic || "—"} | التقييم: ${logData.rating || "—"} | الحالة: ${logData.status || "—"} | التفاصيل: ${logData.notes || "لا توجد"}`
         };
@@ -346,6 +346,31 @@ export const getAttendanceHistory = async (studentEmail) => {
         }));
     } catch (err) {
         console.error("Failed to fetch attendance history:", err.message || err);
+        return [];
+    }
+};
+
+export const getTeacherReports = async (teacherEmail) => {
+    const client = getSupabaseOrWarn("getTeacherReports");
+    if (!client) return [];
+
+    try {
+        const { data, error } = await client
+            .from('attendance_sessions')
+            .select('*')
+            .eq('teacher_email', teacherEmail)
+            .order('session_date', { ascending: false });
+
+        if (error) throw error;
+
+        return (data || []).map(s => ({
+            ...s,
+            date: s.session_date,
+            studentName: s.student_name,
+            student_name: s.student_name
+        }));
+    } catch (err) {
+        console.error("Failed to fetch teacher reports:", err.message || err);
         return [];
     }
 };

@@ -20,6 +20,7 @@ export default async function TeacherLayout({ children }) {
   const teacherLinks = [
     { label: "الملف الشخصي", href: "/teacher/profile" },
     { label: "طلاب القسم", href: "/teacher/students" },
+    { label: "تقارير المعلم", href: "/teacher/reports" },
     { label: "تسجيل حضور", href: "/teacher/attendance" }
   ];
 

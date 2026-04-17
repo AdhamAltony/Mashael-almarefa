@@ -55,6 +55,7 @@ export default function TeacherNavbar({ sectionTitle, links, ctaLabel, ctaHref, 
     const getDynamicLinks = (currentSession) => {
         return [
             { label: "طلاب القسم", href: "/teacher/students" },
+            { label: "تقارير المعلم", href: "/teacher/reports" },
             { label: "الملف الشخصي", href: "/teacher/profile" },
         ];
     };
