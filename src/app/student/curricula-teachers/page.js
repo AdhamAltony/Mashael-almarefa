@@ -244,7 +244,7 @@ export default function CurriculaTeachersPage() {
 
                                         {/* Card Footer (Action) */}
                                         <div className="p-6 pt-0 mt-auto flex flex-col gap-2">
-                                            {isLoggedIn && (
+                                            {isLoggedIn && student?.role === "student" && (
                                                 <button
                                                     onClick={() => handleSubscribe(teacher.name, teacher.email)}
                                                     className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-xs font-bold transition-all ${
