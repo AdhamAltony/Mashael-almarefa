@@ -172,10 +172,10 @@ export default function AdminTeacherSessionsPage() {
       <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-lg shadow-emerald-900/5">
         <div 
           ref={scrollContainerRef}
-          className="overflow-x-auto cursor-grab active:cursor-grabbing select-none"
+          className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar cursor-grab active:cursor-grabbing select-none"
         >
-          <table className="w-full text-right text-sm text-slate-600">
-            <thead className="bg-emerald-50/80 text-emerald-900">
+          <table className="w-full text-right text-sm text-slate-600 border-collapse">
+            <thead className="bg-emerald-50/90 backdrop-blur-sm text-emerald-900 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="whitespace-nowrap px-6 py-4 font-bold">اسم المعلم</th>
                 <th className="whitespace-nowrap px-6 py-4 font-bold">القسم</th>
@@ -391,7 +391,7 @@ export default function AdminTeacherSessionsPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8">
               {historyModal.logs.length === 0 ? (
                 <div className="py-20 text-center text-slate-400">
                   <div className="text-5xl mb-4 opacity-10">🗓️</div>
@@ -399,8 +399,8 @@ export default function AdminTeacherSessionsPage() {
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-emerald-50">
-                  <table className="w-full text-right text-xs sm:text-sm">
-                    <thead className="bg-emerald-50 font-bold text-emerald-900 border-b border-emerald-100">
+                  <table className="w-full text-right text-xs sm:text-sm border-collapse">
+                    <thead className="bg-emerald-50/90 backdrop-blur-sm font-bold text-emerald-900 border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
                       <tr>
                         <th className="px-5 py-4">اسم الطالب</th>
                         <th className="px-5 py-4">التاريخ</th>

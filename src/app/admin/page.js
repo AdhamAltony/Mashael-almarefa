@@ -34,7 +34,7 @@ export default function AdminUsersPage() {
     const [toast, setToast] = useState(null);
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
-    
+
     // Course Management State
     const [editingCourse, setEditingCourse] = useState(null);
     const [editCourseForm, setEditCourseForm] = useState("");
@@ -48,7 +48,7 @@ export default function AdminUsersPage() {
                 setLoading(true);
                 const data = await getLocalUsers();
                 setUsers(data || []);
-                
+
                 // Load real courses from Supabase
                 const savedCourses = await getPlatformCourses();
                 setAllCourses(savedCourses);
@@ -102,20 +102,20 @@ export default function AdminUsersPage() {
     const openEditModal = (user) => {
         setEditingUser(user);
         let rating = user.rating || "5.0";
-        
+
         // Robustly extract department names by removing anything in parentheses first
         const rawDeptStr = user.course || user.department || "";
         const cleanDeptStr = rawDeptStr.split("(")[0].trim();
         const deptNames = cleanDeptStr.split(/[،,]/).map(s => s.trim()).filter(Boolean);
 
-        setEditForm({ 
-            name: user.name, 
-            email: user.email, 
+        setEditForm({
+            name: user.name,
+            email: user.email,
             password: user.password || "",
             phone: user.phone || "",
             guardian: user.guardian || "",
             guardianPhone: user.guardianPhone || "",
-            course: user.course || user.department, 
+            course: user.course || user.department,
             rating,
             bio: user.bio || "",
             rate_per_session: user.rate_per_session || 0,
@@ -129,16 +129,16 @@ export default function AdminUsersPage() {
         const updatedData = { ...editingUser, ...editForm };
         updatedData.subjects = editForm.selectedSubjects;
         updatedData.course = editForm.selectedDepartments.join("، ");
-        
+
         // Add subjects to course title if in Curricula dept
         if (editForm.selectedDepartments.includes("المناهج الدراسية") && editForm.selectedSubjects.length > 0) {
             updatedData.course = updatedData.course + ` (${editForm.selectedSubjects.join("، ")})`;
         }
-        
+
         updatedData.department = updatedData.course;
-        
+
         await updateUser(updatedData);
-        
+
         setUsers(await getLocalUsers());
         setEditingUser(null);
     };
@@ -149,10 +149,10 @@ export default function AdminUsersPage() {
             const updated = current.includes(deptName)
                 ? (current.length > 1 ? current.filter(d => d !== deptName) : current)
                 : [...current, deptName];
-            
+
             // If curricula is removed, clear subjects too
             const extra = (!updated.includes("المناهج الدراسية")) ? { selectedSubjects: [] } : {};
-            
+
             return { ...prev, selectedDepartments: updated, ...extra };
         });
     };
@@ -172,14 +172,14 @@ export default function AdminUsersPage() {
         const profile = JSON.parse(localStorage.getItem(profileKey) || "{}");
         const currentStatus = user.status || profile.status || "نشط";
         const newStatus = currentStatus === "إجازة" ? "نشط" : "إجازة";
-        
+
         profile.status = newStatus;
         localStorage.setItem(profileKey, JSON.stringify(profile));
-        
+
         await updateUser({ ...user, status: newStatus });
-        
+
         setUsers(await getLocalUsers());
-        
+
         setToast({ message: `تم تغيير حالة ${user.name} إلى ${newStatus}`, type: "success" });
         setTimeout(() => setToast(null), 3000);
     };
@@ -192,7 +192,7 @@ export default function AdminUsersPage() {
     const handleSaveAssignments = async () => {
         if (assigningToUser) {
             await saveCourseAssignments(assigningToUser.email, selectedCourses);
-            
+
             // Update local count
             setAssignedCourseCounts(prev => ({
                 ...prev,
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
     };
 
     const toggleCourse = (id) => {
-        setSelectedCourses(prev => 
+        setSelectedCourses(prev =>
             prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
         );
     };
@@ -220,7 +220,7 @@ export default function AdminUsersPage() {
     const handleSaveCourseEdit = async (e) => {
         e.preventDefault();
         const success = await updatePlatformCourse(editingCourse, editCourseForm);
-        
+
         if (success) {
             const updatedCourses = await getPlatformCourses();
             setAllCourses(updatedCourses);
@@ -234,7 +234,7 @@ export default function AdminUsersPage() {
 
     const confirmDeleteCourse = async () => {
         const success = await deletePlatformCourse(courseToDelete);
-        
+
         if (success) {
             const updatedCourses = await getPlatformCourses();
             setAllCourses(updatedCourses);
@@ -249,7 +249,7 @@ export default function AdminUsersPage() {
     const handleAddCourse = async (e) => {
         e.preventDefault();
         if (!newCourseName.trim()) return;
-        
+
         if (allCourses.includes(newCourseName)) {
             setToast({ message: "هذه الدورة موجودة بالفعل", type: "error" });
             setTimeout(() => setToast(null), 3000);
@@ -257,7 +257,7 @@ export default function AdminUsersPage() {
         }
 
         const result = await addPlatformCourse(newCourseName);
-        
+
         if (result) {
             const updatedCourses = await getPlatformCourses();
             setAllCourses(updatedCourses);
@@ -316,12 +316,12 @@ export default function AdminUsersPage() {
                 </div>
 
                 {/* Users Table / List */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
                     {activeTab === "courses" ? (
                         <div className="space-y-4">
                             <div className="flex justify-between items-center mb-2">
                                 <h3 className="text-lg font-bold text-emerald-900">قائمة الدورات المتاحة</h3>
-                                <button 
+                                <button
                                     onClick={() => setIsAddingCourse(true)}
                                     className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-700 hover:-translate-y-0.5"
                                 >
@@ -332,55 +332,55 @@ export default function AdminUsersPage() {
                                 </button>
                             </div>
                             <table className="w-full text-right text-sm">
-                            <thead>
-                                <tr className="border-b border-emerald-100 text-emerald-900">
-                                    <th className="py-4 pl-4 font-bold">اسم الدورة</th>
-                                    <th className="py-4 pl-4 font-bold">عدد الفيديوهات</th>
-                                    <th className="py-4 font-bold w-32">الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-emerald-50/50">
-                                {allCourses.length > 0 ? (
-                                    allCourses.map((course, index) => {
-                                        const videoCount = videoCounts[course] || 0;
-                                        return (
-                                            <tr key={index} className="group transition-colors hover:bg-emerald-50/30">
-                                                <td className="py-4 pl-4 font-bold text-emerald-950">{course}</td>
-                                                <td className="py-4 pl-4 text-slate-500">{videoCount} فيديوهات</td>
-                                                <td className="py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => openEditCourseModal(course)}
-                                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
-                                                            title="تعديل الاسم"
-                                                        >
-                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setCourseToDelete(course)}
-                                                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
-                                                            title="حذف الدورة"
-                                                        >
-                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                ) : (
-                                    <tr>
-                                        <td colSpan="3" className="py-8 text-center text-slate-500">
-                                            لا توجد دورات حاليًا.
-                                        </td>
+                                <thead>
+                                    <tr className="border-b border-emerald-100 text-emerald-900">
+                                        <th className="py-4 pl-4 font-bold">اسم الدورة</th>
+                                        <th className="py-4 pl-4 font-bold">عدد الفيديوهات</th>
+                                        <th className="py-4 font-bold w-32">الإجراءات</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-emerald-50/50">
+                                    {allCourses.length > 0 ? (
+                                        allCourses.map((course, index) => {
+                                            const videoCount = videoCounts[course] || 0;
+                                            return (
+                                                <tr key={index} className="group transition-colors hover:bg-emerald-50/30">
+                                                    <td className="py-4 pl-4 font-bold text-emerald-950">{course}</td>
+                                                    <td className="py-4 pl-4 text-slate-500">{videoCount} فيديوهات</td>
+                                                    <td className="py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => openEditCourseModal(course)}
+                                                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 transition-colors hover:bg-emerald-200"
+                                                                title="تعديل الاسم"
+                                                            >
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setCourseToDelete(course)}
+                                                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 transition-colors hover:bg-red-200"
+                                                                title="حذف الدورة"
+                                                            >
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="3" className="py-8 text-center text-slate-500">
+                                                لا توجد دورات حاليًا.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     ) : (
                         <table className="w-full text-right text-sm">
@@ -544,7 +544,7 @@ export default function AdminUsersPage() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 overflow-hidden">
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 pt-5">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3.5">
@@ -559,7 +559,7 @@ export default function AdminUsersPage() {
                                             placeholder="الاسم الكامل"
                                         />
                                     </div>
-                                    
+
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-extrabold text-slate-500 pr-1">البريد الإلكتروني</label>
                                         <input
@@ -571,7 +571,7 @@ export default function AdminUsersPage() {
                                             placeholder="example@mail.com"
                                         />
                                     </div>
-                                    
+
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-extrabold text-slate-500 pr-1">كلمة السر</label>
                                         <input
@@ -583,7 +583,7 @@ export default function AdminUsersPage() {
                                             dir="ltr"
                                         />
                                     </div>
-                                    
+
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-extrabold text-slate-500 pr-1">رقم الهاتف</label>
                                         <input
@@ -632,7 +632,7 @@ export default function AdminUsersPage() {
                                                     className={`group relative flex items-center justify-between rounded-xl border-2 p-3 transition-all ${editForm.selectedDepartments.includes(dept)
                                                         ? "border-emerald-500 bg-emerald-50/50 text-emerald-950 shadow-sm"
                                                         : "border-slate-50 bg-slate-50/10 text-slate-400 hover:border-emerald-100 hover:text-slate-600"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <span className="text-[10px] font-black">{dept}</span>
                                                     {editForm.selectedDepartments.includes(dept) && (
@@ -662,7 +662,7 @@ export default function AdminUsersPage() {
                                                         className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all transform active:scale-95 ${editForm.selectedSubjects.includes(sub.name)
                                                             ? "border-emerald-500 bg-white text-emerald-900 shadow-sm ring-1 ring-emerald-500/10"
                                                             : "border-slate-200 bg-white text-slate-400 hover:border-emerald-200 hover:text-slate-600"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <span className="text-xs">{sub.icon}</span>
                                                         <span className="text-[9px] font-bold truncate">{sub.name}</span>
@@ -691,8 +691,8 @@ export default function AdminUsersPage() {
                                                         <span>{editForm.rating} ★</span>
                                                     </label>
                                                     <div className="flex items-center h-9">
-                                                        <input 
-                                                            type="range" 
+                                                        <input
+                                                            type="range"
                                                             min="1" max="5" step="0.1"
                                                             value={editForm.rating}
                                                             onChange={(e) => setEditForm({ ...editForm, rating: e.target.value })}
